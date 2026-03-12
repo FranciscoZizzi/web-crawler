@@ -24,7 +24,8 @@ class CrawlerOrchestrator(
             // Step 2: Fetch next URL from Frontier
             val currentUrl: String = urlFrontier.getNext() ?: break
 
-            // Step 3: Resolve DNS and Download
+            try {
+                // Step 3: Resolve DNS and Download
             val domain: String = extractDomain(currentUrl)
             val ipAddressResult: Result<String> = dnsResolver.resolve(domain)
             val ipAddress = ipAddressResult.getOrNull() ?: continue // TODO handle error
@@ -66,6 +67,9 @@ class CrawlerOrchestrator(
             // Add new URLs back to the Frontier (Step 11 continued)
             if (newUrls.isNotEmpty()) {
                 urlFrontier.addAll(newUrls)
+            }
+            } finally {
+                urlFrontier.markCompleted(currentUrl)
             }
             
             yield()
