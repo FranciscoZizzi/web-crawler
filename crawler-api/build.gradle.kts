@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    application
 }
 
 group = "com.fzizzi"
@@ -20,3 +21,5 @@ tasks.test {
 kotlin {
     jvmToolchain(21)
 }
+
+application { mainClass.set("com.fzizzi.api.MainKt") }
