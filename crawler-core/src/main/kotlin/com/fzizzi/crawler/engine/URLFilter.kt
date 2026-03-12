@@ -1,5 +1,5 @@
 package com.fzizzi.crawler.engine
 
-interface IURLFilter {
+interface URLFilter {
     suspend fun isAllowed(url: String): Boolean
 }

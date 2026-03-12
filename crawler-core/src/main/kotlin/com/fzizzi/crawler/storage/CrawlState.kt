@@ -1,6 +1,6 @@
 package com.fzizzi.crawler.storage
 
-interface ICrawlState {
+interface CrawlState {
     suspend fun saveFrontierState(urls: List<String>)
     suspend fun saveSeenUrls(urls: Set<String>)
     

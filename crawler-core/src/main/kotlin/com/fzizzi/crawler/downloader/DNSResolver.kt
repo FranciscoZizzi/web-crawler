@@ -1,5 +1,5 @@
 package com.fzizzi.crawler.downloader
 
-interface IDNSResolver {
+interface DNSResolver {
     suspend fun resolve(domain: String): Result<String>
 }

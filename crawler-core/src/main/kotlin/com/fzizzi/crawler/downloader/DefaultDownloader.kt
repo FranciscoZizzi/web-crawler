@@ -1,60 +1,12 @@
 package com.fzizzi.crawler.downloader
 
 import com.fzizzi.crawler.model.HTMLContent
-import kotlinx.coroutines.*
-import java.net.InetAddress
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Duration.Companion.hours
-
-class CachingDNSResolver(
-    private val backgroundScope: CoroutineScope
-) : IDNSResolver {
-    
-    // In-memory DNS cache
-    private val dnsCache = ConcurrentHashMap<String, String>()
-
-    init {
-        // Periodic background updates to refresh the cache
-        backgroundScope.launch {
-            while (isActive) {
-                delay(1.hours)
-                refreshCache()
-            }
-        }
-    }
-
-    override suspend fun resolve(domain: String): Result<String> {
-        // Attempt to get from cache first to avoid synchronous blocking call
-        val cachedIp = dnsCache[domain]
-        if (cachedIp != null) {
-            return Result.success(cachedIp)
-        }
-
-        // If not in cache, resolve and cache it
-        return withContext(Dispatchers.IO) {
-            try {
-                val address = InetAddress.getByName(domain).hostAddress // TODO use IDNSResolver
-                dnsCache[domain] = address
-                Result.success(address)
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
-        }
-    }
-    
-    private suspend fun refreshCache() = withContext(Dispatchers.IO) {
-        // Iterate through known domains and refresh IPs
-        dnsCache.keys().toList().forEach { domain ->
-            try {
-                val address = InetAddress.getByName(domain).hostAddress
-                dnsCache[domain] = address
-            } catch (e: Exception) {
-                // Keep old IP on temporary failure
-            }
-        }
-    }
-}
 
 class RobotsCache {
     // domain -> List of disallowed paths
@@ -87,10 +39,10 @@ class RobotsCache {
 }
 
 class DefaultDownloader(
-    private val dispatcher: IDownloadDispatcher,
+    private val dispatcher: DownloadDispatcher,
     private val robotsCache: RobotsCache,
     private val timeoutMs: Long = 5000L
-) : IHTMLDownloader {
+) : HTMLDownloader {
 
     override suspend fun download(url: String, ipAddress: String?): Result<HTMLContent> {
         if (ipAddress == null) {

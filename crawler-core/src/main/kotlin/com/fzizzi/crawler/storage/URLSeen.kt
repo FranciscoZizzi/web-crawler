@@ -1,6 +1,6 @@
 package com.fzizzi.crawler.storage
 
-interface IURLSeen {
+interface URLSeen {
     suspend fun isSeen(url: String): Boolean
     suspend fun add(url: String)
 }

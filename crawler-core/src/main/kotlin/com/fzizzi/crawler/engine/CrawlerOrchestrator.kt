@@ -1,26 +1,24 @@
 package com.fzizzi.crawler.engine
 
-import com.fzizzi.crawler.downloader.IDNSResolver
-import com.fzizzi.crawler.downloader.IHTMLDownloader
-import com.fzizzi.crawler.frontier.IURLFrontier
-import com.fzizzi.crawler.engine.IContentParser
-import com.fzizzi.crawler.engine.IURLFilter
-import com.fzizzi.crawler.extractor.ILinkExtractor
-import com.fzizzi.crawler.storage.IContentSeen
-import com.fzizzi.crawler.storage.IURLSeen
+import com.fzizzi.crawler.downloader.DNSResolver
+import com.fzizzi.crawler.downloader.HTMLDownloader
+import com.fzizzi.crawler.frontier.URLFrontier
+import com.fzizzi.crawler.extractor.LinkExtractor
+import com.fzizzi.crawler.storage.ContentSeen
+import com.fzizzi.crawler.storage.URLSeen
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 
 class CrawlerOrchestrator(
-    private val urlFrontier: IURLFrontier,
-    private val htmlDownloader: IHTMLDownloader,
-    private val dnsResolver: IDNSResolver,
-    private val contentParser: IContentParser,
-    private val contentSeen: IContentSeen,
-    private val linkExtractor: ILinkExtractor,
-    private val urlFilter: IURLFilter,
-    private val urlSeen: IURLSeen
+    private val urlFrontier: URLFrontier,
+    private val htmlDownloader: HTMLDownloader,
+    private val dnsResolver: DNSResolver,
+    private val contentParser: ContentParser,
+    private val contentSeen: ContentSeen,
+    private val linkExtractor: LinkExtractor,
+    private val urlFilter: URLFilter,
+    private val urlSeen: URLSeen
 ) {
     suspend fun start(seeds: List<String>) = coroutineScope {
         // Step 1: Add seeds to Frontier

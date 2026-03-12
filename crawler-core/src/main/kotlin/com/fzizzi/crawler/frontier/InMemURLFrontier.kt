@@ -1,6 +1,6 @@
 package com.fzizzi.crawler.frontier
 
-class InMemURLFrontier : IURLFrontier {
+class InMemURLFrontier : URLFrontier {
     private val urls = LinkedHashSet<String>()
 
     override suspend fun add(url: String) {

@@ -4,7 +4,7 @@ import com.fzizzi.crawler.model.HTMLContent
 
 class DefaultContentParser(
     private val minContentLength: Int = 100
-) : IContentParser {
+) : ContentParser {
 
     override suspend fun parseAndValidate(html: HTMLContent): Boolean {
         val content = html.content

@@ -1,12 +1,12 @@
 package com.fzizzi.crawler.engine
 
-import com.fzizzi.crawler.downloader.IDNSResolver
-import com.fzizzi.crawler.downloader.IHTMLDownloader
-import com.fzizzi.crawler.extractor.ILinkExtractor
-import com.fzizzi.crawler.frontier.IURLFrontier
+import com.fzizzi.crawler.downloader.DNSResolver
+import com.fzizzi.crawler.downloader.HTMLDownloader
+import com.fzizzi.crawler.extractor.LinkExtractor
+import com.fzizzi.crawler.frontier.URLFrontier
 import com.fzizzi.crawler.model.HTMLContent
-import com.fzizzi.crawler.storage.IContentSeen
-import com.fzizzi.crawler.storage.IURLSeen
+import com.fzizzi.crawler.storage.ContentSeen
+import com.fzizzi.crawler.storage.URLSeen
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -15,14 +15,14 @@ import kotlin.test.assertEquals
 
 class CrawlerOrchestratorTest {
 
-    private lateinit var mockFrontier: IURLFrontier
-    private lateinit var mockDownloader: IHTMLDownloader
-    private lateinit var mockDnsResolver: IDNSResolver
-    private lateinit var mockContentParser: IContentParser
-    private lateinit var mockContentSeen: IContentSeen
-    private lateinit var mockLinkExtractor: ILinkExtractor
+    private lateinit var mockFrontier: URLFrontier
+    private lateinit var mockDownloader: HTMLDownloader
+    private lateinit var mockDnsResolver: DNSResolver
+    private lateinit var mockContentParser: ContentParser
+    private lateinit var mockContentSeen: ContentSeen
+    private lateinit var mockLinkExtractor: LinkExtractor
     private lateinit var urlFilter: DefaultURLFilter
-    private lateinit var mockUrlSeen: IURLSeen
+    private lateinit var mockUrlSeen: URLSeen
 
     private lateinit var orchestrator: CrawlerOrchestrator
 

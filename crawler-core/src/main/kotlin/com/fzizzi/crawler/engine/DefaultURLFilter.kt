@@ -5,7 +5,7 @@ import java.net.URI
 class DefaultURLFilter(
     private val maxLength: Int = 2000,
     private val maxPathRepetitions: Int = 3
-) : IURLFilter {
+) : URLFilter {
 
     override suspend fun isAllowed(url: String): Boolean {
         if (url.length > maxLength) {

@@ -23,7 +23,7 @@ data class DownloadJob(
 class DefaultDownloadDispatcher(
     private val workerScope: CoroutineScope,
     private val numWorkers: Int = 10
-) : IDownloadDispatcher {
+) : DownloadDispatcher {
 
     // Using a Channel as a thread-safe queue for the workers
     private val jobChannel = Channel<DownloadJob>(Channel.UNLIMITED)

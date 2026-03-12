@@ -67,7 +67,7 @@ class DefaultURLFrontier(
     private val numBackQueues: Int = 10,
     private val prioritizer: Prioritizer = DefaultPrioritizer(numFrontQueues),
     private val recrawlStrategy: RecrawlStrategy = DefaultRecrawlStrategy()
-) : IURLFrontier {
+) : URLFrontier {
 
     private val frontQueues = List(numFrontQueues) { ConcurrentLinkedQueue<String>() }
     private val frontSelector = FrontQueueSelector(frontQueues)
