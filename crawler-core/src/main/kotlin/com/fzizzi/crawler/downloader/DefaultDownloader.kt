@@ -34,7 +34,7 @@ class CachingDNSResolver(
         // If not in cache, resolve and cache it
         return withContext(Dispatchers.IO) {
             try {
-                val address = InetAddress.getByName(domain).hostAddress
+                val address = InetAddress.getByName(domain).hostAddress // TODO use IDNSResolver
                 dnsCache[domain] = address
                 Result.success(address)
             } catch (e: Exception) {

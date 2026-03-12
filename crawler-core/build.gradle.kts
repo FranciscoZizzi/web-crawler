@@ -11,6 +11,8 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
 }
 

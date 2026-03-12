@@ -8,41 +8,23 @@ class DefaultURLFilter(
 ) : IURLFilter {
 
     override suspend fun isAllowed(url: String): Boolean {
-        // 1. Spider Trap: Check maximum URL length
         if (url.length > maxLength) {
             return false
         }
 
-        // 2. Spider Trap: Check for repeating path segments (e.g. /foo/bar/foo/bar)
         try {
             val uri = URI(url)
             val path = uri.path ?: return true
             
-            // Split path into segments, ignoring empty strings from leading/trailing slashes
             val segments = path.split("/").filter { it.isNotEmpty() }
             
             if (segments.isEmpty()) return true
 
-            // TODO extract to methods to improve readability and remove comments
-            // Look for repeating sequences of segments
-            // check if any single segment repeats more than maxPathRepetitions
-            val segmentCounts = mutableMapOf<String, Int>()
-            for (segment in segments) {
-                val count = segmentCounts.getOrDefault(segment, 0) + 1
-                if (count > maxPathRepetitions) {
-                    return false
-                }
-                segmentCounts[segment] = count
-            }
-
-            // A more advanced heuristic check for repeating multi-segment patterns
-            // (e.g., /a/b/a/b/a/b)
             if (hasRepeatingPattern(segments, maxPathRepetitions)) {
                 return false
             }
 
         } catch (e: Exception) {
-            // If URL is unparsable, we'll err on the side of caution and drop it
             return false
         }
 
