@@ -1,6 +1,7 @@
 package com.fzizzi.crawler.parser
 
 import com.fzizzi.crawler.model.HTMLContent
+import org.jsoup.Jsoup
 
 class DefaultContentParser(
     private val minContentLength: Int = 100
@@ -25,10 +26,16 @@ class DefaultContentParser(
             return false
         }
 
-        // 4. Validate well-formedness placeholder
-        // TODO
-        // In a real implementation this would use JSoup or similar to parse the DOM tree
-        // and extract meaningful text, discarding scripts, styles, and ads
+        // 4. Validate well-formedness using JSoup
+        try {
+            val doc = Jsoup.parse(content)
+            val bodyText = doc.body()?.text() ?: ""
+            if (bodyText.length < minContentLength) {
+                return false
+            }
+        } catch (e: Exception) {
+            return false
+        }
         
         return true
     }
