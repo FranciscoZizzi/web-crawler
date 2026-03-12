@@ -109,7 +109,7 @@ class DefaultURLFrontier(
         // Sync on the active queues lock structure to avoid thread collision over pulling from free queue
         synchronized(this) {
             for (i in 0 until numBackQueues) {
-                if (activeQueues[i] == false && backQueues[i].isNotEmpty()) {
+                if (activeQueues[i] != true && backQueues[i].isNotEmpty()) {
                     val url = backQueues[i].poll()
                     if (url != null) {
                         size.decrementAndGet()
