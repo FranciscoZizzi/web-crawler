@@ -71,8 +71,7 @@ class DefaultDownloader(
     
     private fun extractDomain(url: String): String {
         return try {
-            val withoutProtocol = url.substringAfter("://")
-            withoutProtocol.substringBefore("/").substringBefore(":")
+            java.net.URL(url).authority
         } catch (e: Exception) {
             url
         }
