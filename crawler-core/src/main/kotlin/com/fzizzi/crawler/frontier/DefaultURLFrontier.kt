@@ -93,12 +93,18 @@ class DefaultURLFrontier(
     }
 
     private fun routeFrontToBack() {
-        // TODO routeFrontToBack drains everything from front into back (could be optimized to move only a few at a time).
+        val maxDrainSize = 1000
+        var count = 0
+        
         var nextUrl = frontSelector.selectNext()
-        while (nextUrl != null) {
+        while (nextUrl != null && count < maxDrainSize) {
             val backQueueIndex = backRouter.getQueueIndex(nextUrl)
             backQueues[backQueueIndex].offer(nextUrl)
-            nextUrl = frontSelector.selectNext()
+            count++
+            
+            if (count < maxDrainSize) {
+                nextUrl = frontSelector.selectNext()
+            }
         }
     }
 
