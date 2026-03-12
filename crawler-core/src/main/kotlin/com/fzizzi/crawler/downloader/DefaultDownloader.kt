@@ -3,7 +3,7 @@ package com.fzizzi.crawler.downloader
 import com.fzizzi.crawler.model.HTMLContent
 import com.fzizzi.crawler.protocol.IDNSResolver
 import com.fzizzi.crawler.protocol.IHTMLDownloader
-import com.fzizzi.crawler.protocol.IMessageDispatcher
+import com.fzizzi.crawler.protocol.IDownloadDispatcher
 import kotlinx.coroutines.*
 import java.net.InetAddress
 import java.net.URI
@@ -90,7 +90,7 @@ class RobotsCache {
 }
 
 class DefaultDownloader(
-    private val dispatcher: IMessageDispatcher,
+    private val dispatcher: IDownloadDispatcher,
     private val robotsCache: RobotsCache,
     private val timeoutMs: Long = 5000L
 ) : IHTMLDownloader {
@@ -109,11 +109,9 @@ class DefaultDownloader(
 
         return try {
             withTimeout(timeoutMs) {
-                dispatcher.dispatch(url, ipAddress, timeoutMs)
+                val deferredResult = dispatcher.dispatch(url, ipAddress, timeoutMs)
                 
-                // TODO Placeholder for actual HTTP GET request using an HTTP client configured with short timeouts
-                // This would wait on a Deferred<Result<HTMLContent>> returned by the dispatcher
-                Result.success(HTMLContent(url, "<html>...</html>", "dummy_hash"))
+                deferredResult.await()
             }
         } catch (e: TimeoutCancellationException) {
             Result.failure(Exception("Downloader timed out after $timeoutMs ms", e))
