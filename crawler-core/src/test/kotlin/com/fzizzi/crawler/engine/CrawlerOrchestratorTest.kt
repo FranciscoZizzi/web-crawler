@@ -64,7 +64,7 @@ class CrawlerOrchestratorTest {
         coEvery { mockFrontier.isEmpty() } returns false andThen true // run once and terminate
         
         // 3. Fetch Next
-        coEvery { mockFrontier.getNext() } returns seedUrl
+        coEvery { mockFrontier.getNext() } returns seedUrl andThen null
         
         // 4. DNS resolve
         coEvery { mockDnsResolver.resolve("example.com") } returns Result.success(ipAddress)
@@ -116,7 +116,7 @@ class CrawlerOrchestratorTest {
         
         coEvery { mockFrontier.addAll(listOf(seedUrl)) } just Runs
         coEvery { mockFrontier.isEmpty() } returns false andThen true
-        coEvery { mockFrontier.getNext() } returns seedUrl
+        coEvery { mockFrontier.getNext() } returns seedUrl andThen null
         
         // Inject DNS failure
         coEvery { mockDnsResolver.resolve("invalid.com") } returns Result.failure(Exception("DNS Error"))
@@ -139,7 +139,7 @@ class CrawlerOrchestratorTest {
 
         coEvery { mockFrontier.addAll(listOf(seedUrl)) } just Runs
         coEvery { mockFrontier.isEmpty() } returns false andThen true
-        coEvery { mockFrontier.getNext() } returns seedUrl
+        coEvery { mockFrontier.getNext() } returns seedUrl andThen null
         coEvery { mockDnsResolver.resolve("example.com") } returns Result.success(ipAddress)
         coEvery { mockDownloader.download(seedUrl, ipAddress) } returns Result.success(content)
         coEvery { mockContentParser.parseAndValidate(content) } returns true
