@@ -1,4 +1,4 @@
-package com.fzizzi.crawler.protocol
+package com.fzizzi.crawler.frontier
 
 interface IURLFrontier {
     suspend fun add(url: String)

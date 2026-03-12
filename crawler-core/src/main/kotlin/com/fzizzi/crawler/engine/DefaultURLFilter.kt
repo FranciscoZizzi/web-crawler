@@ -1,6 +1,5 @@
 package com.fzizzi.crawler.engine
 
-import com.fzizzi.crawler.protocol.IURLFilter
 import java.net.URI
 
 class DefaultURLFilter(

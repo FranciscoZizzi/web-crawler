@@ -1,6 +1,5 @@
 package com.fzizzi.crawler.frontier
 
-import com.fzizzi.crawler.protocol.IURLFrontier
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue

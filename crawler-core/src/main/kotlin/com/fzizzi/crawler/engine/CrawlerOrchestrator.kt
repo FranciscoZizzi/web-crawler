@@ -1,6 +1,13 @@
 package com.fzizzi.crawler.engine
 
-import com.fzizzi.crawler.protocol.*
+import com.fzizzi.crawler.downloader.IDNSResolver
+import com.fzizzi.crawler.downloader.IHTMLDownloader
+import com.fzizzi.crawler.frontier.IURLFrontier
+import com.fzizzi.crawler.engine.IContentParser
+import com.fzizzi.crawler.engine.IURLFilter
+import com.fzizzi.crawler.extractor.ILinkExtractor
+import com.fzizzi.crawler.storage.IContentSeen
+import com.fzizzi.crawler.storage.IURLSeen
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield

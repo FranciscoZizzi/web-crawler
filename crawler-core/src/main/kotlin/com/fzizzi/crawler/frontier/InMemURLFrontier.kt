@@ -1,7 +1,5 @@
 package com.fzizzi.crawler.frontier
 
-import com.fzizzi.crawler.protocol.IURLFrontier
-
 class InMemURLFrontier : IURLFrontier {
     private val urls = LinkedHashSet<String>()
 

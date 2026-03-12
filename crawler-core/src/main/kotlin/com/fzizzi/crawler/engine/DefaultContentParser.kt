@@ -1,7 +1,6 @@
 package com.fzizzi.crawler.engine
 
 import com.fzizzi.crawler.model.HTMLContent
-import com.fzizzi.crawler.protocol.IContentParser
 
 class DefaultContentParser(
     private val minContentLength: Int = 100

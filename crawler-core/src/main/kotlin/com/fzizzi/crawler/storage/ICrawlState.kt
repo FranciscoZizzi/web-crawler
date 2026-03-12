@@ -1,4 +1,4 @@
-package com.fzizzi.crawler.protocol
+package com.fzizzi.crawler.storage
 
 interface ICrawlState {
     suspend fun saveFrontierState(urls: List<String>)

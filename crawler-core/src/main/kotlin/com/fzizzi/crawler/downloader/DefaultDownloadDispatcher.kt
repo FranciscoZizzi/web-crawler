@@ -1,6 +1,5 @@
 package com.fzizzi.crawler.downloader
 
-import com.fzizzi.crawler.protocol.IDownloadDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch

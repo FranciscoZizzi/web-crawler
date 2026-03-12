@@ -1,9 +1,6 @@
 package com.fzizzi.crawler.downloader
 
 import com.fzizzi.crawler.model.HTMLContent
-import com.fzizzi.crawler.protocol.IDNSResolver
-import com.fzizzi.crawler.protocol.IHTMLDownloader
-import com.fzizzi.crawler.protocol.IDownloadDispatcher
 import kotlinx.coroutines.*
 import java.net.InetAddress
 import java.net.URI

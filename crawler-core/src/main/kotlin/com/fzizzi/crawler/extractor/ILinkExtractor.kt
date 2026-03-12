@@ -1,4 +1,4 @@
-package com.fzizzi.crawler.protocol
+package com.fzizzi.crawler.extractor
 
 import com.fzizzi.crawler.model.HTMLContent
 
