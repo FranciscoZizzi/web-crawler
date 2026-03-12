@@ -4,6 +4,7 @@ import com.fzizzi.crawler.downloader.DNSResolver
 import com.fzizzi.crawler.downloader.HTMLDownloader
 import com.fzizzi.crawler.frontier.URLFrontier
 import com.fzizzi.crawler.extractor.LinkExtractor
+import com.fzizzi.crawler.parser.ContentParser
 import com.fzizzi.crawler.storage.ContentSeen
 import com.fzizzi.crawler.storage.URLSeen
 import kotlinx.coroutines.coroutineScope

@@ -1,4 +1,4 @@
-package com.fzizzi.crawler.engine
+package com.fzizzi.crawler.parser
 
 import com.fzizzi.crawler.model.HTMLContent
 
