@@ -1,0 +1,44 @@
+@startuml
+skinparam componentStyle rectangle
+
+title Web Crawler - Distributed Architecture Prototype
+
+package "Crawler API Module" {
+    [REST Controller] as API
+}
+
+package "Crawler Core Module" {
+    [Crawler Orchestrator] as Engine
+    [URL Frontier] as Frontier
+    [HTML Parser] as Parser
+    [Politeness Governor] as Governor
+    
+    interface "IMessageDispatcher" as IDisp
+}
+
+package "Downloader Service (Logical/Remote)" {
+    [HTML Fetcher] as Fetcher
+    database "Content Store" as Storage
+}
+
+'' Relationships
+API --> Engine : "Trigger/Monitor"
+Engine --> Frontier : "Get/Add URLs"
+Engine --> IDisp : "Dispatch task"
+Engine --> Parser : "Parse HTML"
+
+IDisp ..> Fetcher : "Message Passing"
+Fetcher --> Governor : "Check Domain Delay"
+Fetcher --> Storage : "Save (30PB scale)"
+Fetcher ..> Frontier : "Return found links"
+
+note top of IDisp
+  In Prototype: Local Kotlin Channel.
+  In Scale: Distributed Queue (Kafka/RabbitMQ).
+end note
+
+note right of Governor
+  Ensures "Politeness" by 
+  tracking per-domain delay.
+end note
+@enduml
