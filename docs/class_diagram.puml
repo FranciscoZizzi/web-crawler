@@ -1,0 +1,138 @@
+@startuml Web Crawler Class Diagram
+
+skinparam DefaultFontName Arial
+skinparam DefaultFontSize 12
+skinparam BackgroundColor white
+skinparam ClassAttributeIconSize 0
+
+package "model" {
+    class HTMLContent {
+        + url: String
+        + content: String
+        + hash: String
+    }
+}
+
+package "frontier" {
+    interface IURLFrontier {
+        + add(url: String)
+        + addAll(urls: List<String>)
+        + getNext(): String?
+        + markCompleted(url: String)
+        + isEmpty(): Boolean
+    }
+
+    class InMemURLFrontier {
+    }
+    class DefaultURLFrontier {
+    }
+    
+    IURLFrontier <|.. InMemURLFrontier
+    IURLFrontier <|.. DefaultURLFrontier
+}
+
+package "downloader" {
+    interface IDNSResolver {
+        + resolve(domain: String): Result<String>
+    }
+
+    interface IHTMLDownloader {
+        + download(url: String, ipAddress: String?): Result<HTMLContent>
+    }
+
+    interface IDownloadDispatcher {
+        + dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<HTMLContent>>
+    }
+
+    class DefaultDownloader {
+    }
+    class CachingDNSResolver {
+    }
+    class RobotsCache {
+    }
+    class DefaultDownloadDispatcher {
+    }
+    
+    IHTMLDownloader <|.. DefaultDownloader
+    IDNSResolver <|.. CachingDNSResolver
+    IDownloadDispatcher <|.. DefaultDownloadDispatcher
+    
+    DefaultDownloader --> IDownloadDispatcher : uses
+    DefaultDownloader --> RobotsCache : uses
+}
+
+package "engine" {
+    interface IContentParser {
+        + parseAndValidate(html: HTMLContent): Boolean
+    }
+
+    interface IURLFilter {
+        + isAllowed(url: String): Boolean
+    }
+
+    class CrawlerOrchestrator {
+        + start(seeds: List<String>)
+    }
+    
+    class DefaultContentParser {
+    }
+    class DefaultURLFilter {
+    }
+    class ConsistentHashRouter<T> {
+    }
+    
+    IContentParser <|.. DefaultContentParser
+    IURLFilter <|.. DefaultURLFilter
+    
+    CrawlerOrchestrator --> IURLFrontier : uses
+    CrawlerOrchestrator --> IHTMLDownloader : uses
+    CrawlerOrchestrator --> IDNSResolver : uses
+    CrawlerOrchestrator --> IContentParser : uses
+    CrawlerOrchestrator --> IContentSeen : uses
+    CrawlerOrchestrator --> ILinkExtractor : uses
+    CrawlerOrchestrator --> IURLFilter : uses
+    CrawlerOrchestrator --> IURLSeen : uses
+}
+
+package "storage" {
+    interface IContentSeen {
+        + isSeen(content: HTMLContent): Boolean
+        + add(content: HTMLContent)
+    }
+
+    interface IURLSeen {
+        + isSeen(url: String): Boolean
+        + add(url: String)
+    }
+
+    interface ICrawlState {
+        + saveFrontierState(urls: List<String>)
+        + saveSeenUrls(urls: Set<String>)
+        + loadFrontierState(): List<String>
+        + loadSeenUrls(): Set<String>
+        + clearState()
+    }
+
+    class DefaultContentSeen
+
+    IContentSeen ..|> DefaultContentSeen
+}
+
+package "extractor" {
+    interface ILinkExtractor {
+        + extract(content: HTMLContent): List<String>
+    }
+    class DefaultLinkExtractor
+
+
+     ILinkExtractor ..|> DefaultLinkExtractor
+}
+
+' Engine and Models connections
+CrawlerOrchestrator ..> HTMLContent : processes
+IHTMLDownloader ..> HTMLContent : produces
+IContentParser ..> HTMLContent : validates
+DefaultContentSeen ..> HTMLContent : tracks
+DefaultLinkExtractor ..> HTMLContent : parses
+
+@enduml

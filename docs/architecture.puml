@@ -1,0 +1,60 @@
+@startuml Web Crawler Architecture - Figure 9-10
+allowmixing
+
+skinparam DefaultFontName Arial
+skinparam DefaultFontSize 12
+skinparam BackgroundColor white
+skinparam BoxPadding 10
+
+' Define components & classes mapping
+package "seed URLs" as seedURLs <<Rectangle>> {
+}
+
+package "URL Frontier" as urlFrontier <<Rectangle>> {
+}
+package "HTML Downloader" as htmlDownloader <<Rectangle>> {
+}
+package "DNS Resolver" as dnsResolver <<Rectangle>> {
+}
+package "Content Parser" as contentParser <<Rectangle>> {
+}
+package "Content Seen?" as contentSeen <<Rectangle>> {
+}
+database "Content Storage" as contentStorage <<Rectangle>> {
+}
+
+package "Extension Module" <<Rectangle>> #LightGray {
+    package "PNG Downloader" as pngDownloader <<Rectangle>> {
+    }
+    package "Link Extractor" as linkExtractor <<Rectangle>> {
+    }
+    package "Web Monitor" as webMonitor <<Rectangle>> {
+    }
+}
+
+package "URL Filter" as urlFilter <<Rectangle>> {
+}
+package "URL Seen?" as urlSeen <<Rectangle>> {
+}
+database "URL Storage" as urlStorage
+
+' Define standard workflow connections
+seedURLs -> urlFrontier
+urlFrontier -> htmlDownloader
+htmlDownloader -up-> dnsResolver
+htmlDownloader -> contentParser
+contentParser -> contentSeen
+contentSeen <-up-> contentStorage
+
+contentSeen --> linkExtractor
+contentSeen --> pngDownloader
+contentSeen --> webMonitor
+
+"Extension Module"-->urlFilter
+
+urlFilter --> urlSeen
+urlSeen <--> urlStorage
+
+urlSeen -left-> urlFrontier : New URLs Unseen
+
+@enduml
