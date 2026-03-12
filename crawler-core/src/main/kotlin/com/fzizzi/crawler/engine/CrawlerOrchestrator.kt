@@ -7,9 +7,11 @@ import com.fzizzi.crawler.extractor.LinkExtractor
 import com.fzizzi.crawler.parser.ContentParser
 import com.fzizzi.crawler.storage.ContentSeen
 import com.fzizzi.crawler.storage.URLSeen
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.delay
 
 class CrawlerOrchestrator(
     private val urlFrontier: URLFrontier,
@@ -19,73 +21,93 @@ class CrawlerOrchestrator(
     private val contentSeen: ContentSeen,
     private val linkExtractor: LinkExtractor,
     private val urlFilter: URLFilter,
-    private val urlSeen: URLSeen
+    private val urlSeen: URLSeen,
+    private val clusterRouter: ConsistentHashRouter<String>? = null
 ) {
     suspend fun start(seeds: List<String>) = coroutineScope {
         // Step 1: Add seeds to Frontier
         urlFrontier.addAll(seeds)
 
-        // Main single-threaded-loop representation
-        while (isActive && !urlFrontier.isEmpty()) {
-            // Step 2: Fetch next URL from Frontier
-            val currentUrl: String = urlFrontier.getNext() ?: break
-
-            try {
-                // Step 3: Resolve DNS and Download
-            val domain: String = extractDomain(currentUrl)
-            val ipAddressResult: Result<String> = dnsResolver.resolve(domain)
-            val ipAddress = ipAddressResult.getOrNull() ?: continue // TODO handle error
-
-            val downloadResult = htmlDownloader.download(currentUrl, ipAddress)
-            val htmlContent = downloadResult.getOrNull() ?: continue // TODO handle error
-
-            // Step 4: Parse and validate HTML
-            val isValid = contentParser.parseAndValidate(htmlContent)
-            if (!isValid) {
-                // TODO handle error
-                continue
-            }
-
-            // Step 5 & 6: Check Content Seen? and store if not seen
-            if (contentSeen.isSeen(htmlContent)) {
-                continue
-            }
-            contentSeen.add(htmlContent)
-
-            // Step 7: Extract links
-            val extractedLinks = linkExtractor.extract(htmlContent)
-
-            val newUrls = mutableListOf<String>()
-
-            for (link in extractedLinks) {
-                // Step 8: Apply URL Filters
-                if (!urlFilter.isAllowed(link)) {
-                    continue
+        // Main multi-threaded loop representation
+        while (isActive) {
+            val batchUrls = mutableListOf<String>()
+            val batchSize = 10
+            
+            for (i in 0 until batchSize) {
+                val nextUrl = urlFrontier.getNext()
+                if (nextUrl != null) {
+                    batchUrls.add(nextUrl)
+                } else {
+                    break
                 }
-
-                // Step 9, 10 & 11: Check if URL Seen?, if not add to URL Seen? and Frontier
-                if (!urlSeen.isSeen(link)) {
-                    urlSeen.add(link)
-                    newUrls.add(link)
-                }
-            }
-
-            // Add new URLs back to the Frontier (Step 11 continued)
-            if (newUrls.isNotEmpty()) {
-                urlFrontier.addAll(newUrls)
-            }
-            } finally {
-                urlFrontier.markCompleted(currentUrl)
             }
             
-            yield()
+            if (batchUrls.isEmpty()) {
+                if (urlFrontier.isEmpty()) {
+                    break // We evaluate if frontier is totally empty then we are done
+                } else {
+                    delay(100) // Sleep if waiting on workers
+                    continue
+                }
+            }
+
+            // Process the batch concurrently
+            val deferreds = batchUrls.map { currentUrl ->
+                async {
+                    try {
+                        // Step 3: Resolve DNS and Download
+                        val domain: String = extractDomain(currentUrl)
+                        
+                        if (clusterRouter != null && !clusterRouter.isLocal(domain)) {
+                            return@async // Skip, another cluster node owns this domain
+                        }
+                        
+                        val ipAddressResult: Result<String> = dnsResolver.resolve(domain)
+                        val ipAddress = ipAddressResult.getOrNull() ?: return@async
+
+                        val downloadResult = htmlDownloader.download(currentUrl, ipAddress)
+                        val htmlContent = downloadResult.getOrNull() ?: return@async
+
+                        // Step 4: Parse and validate HTML
+                        val isValid = contentParser.parseAndValidate(htmlContent)
+                        if (!isValid) return@async
+
+                        // Step 5 & 6: Check Content Seen? and store if not seen
+                        if (contentSeen.isSeen(htmlContent)) return@async
+                        contentSeen.add(htmlContent)
+
+                        // Step 7: Extract links
+                        val extractedLinks = linkExtractor.extract(htmlContent) // TODO add extension module to allow PNG downloader, Web Monitor, etc.
+
+                        val newUrls = mutableListOf<String>()
+
+                        for (link in extractedLinks) {
+                            // Step 8: Apply URL Filters
+                            if (!urlFilter.isAllowed(link)) continue
+
+                            // Step 9, 10 & 11: Check if URL Seen?, if not add to URL Seen? and Frontier
+                            if (!urlSeen.isSeen(link)) {
+                                urlSeen.add(link)
+                                newUrls.add(link)
+                            }
+                        }
+
+                        // Add new URLs back to the Frontier
+                        if (newUrls.isNotEmpty()) { // TODO investigate how to avoid adding the same url twice
+                            urlFrontier.addAll(newUrls)
+                        }
+                    } finally {
+                        urlFrontier.markCompleted(currentUrl)
+                    }
+                }
+            }
+            deferreds.awaitAll()
         }
     }
 
     private fun extractDomain(url: String): String {
         return try {
-            val withoutProtocol = url.substringAfter("://")
-            withoutProtocol.substringBefore("/").substringBefore(":")
+            java.net.URL(url).host
         } catch (e: Exception) {
             url
         }
