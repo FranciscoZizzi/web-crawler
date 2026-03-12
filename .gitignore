@@ -1,3 +1,39 @@
 .gradle/
+# Gradle build output (top-level and in subprojects)
+build/
+**/build/
+
+# IntelliJ IDEA
 .idea/
-/build/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local configuration
+local.properties
+.env
+
+# Logs
+*.log
+
+# Java/Kotlin build artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# Kotlin metadata (generated in build output)
+*.kotlin_module
+
+# Other common ignores
+.gradle-cache/
+
+# Keep the Gradle wrapper JAR and properties tracked (do not ignore gradle/wrapper/*)
