@@ -13,7 +13,6 @@ import java.net.URL
 import java.net.HttpURLConnection
 import java.security.MessageDigest
 
-// Simple data class to represent a download job
 data class DownloadJob(
     val url: String,
     val ipAddress: String,
@@ -27,11 +26,9 @@ class DefaultDownloadDispatcher(
     private val maxSizeBytes: Int = 10 * 1024 * 1024
 ) : DownloadDispatcher {
 
-    // Using a Channel as a thread-safe queue for the workers
     private val jobChannel = Channel<DownloadJob>(Channel.UNLIMITED)
 
     init {
-        // Start the worker coroutines
         for (i in 0 until numWorkers) {
             workerScope.launch {
                 workerLoop(i)
@@ -40,16 +37,12 @@ class DefaultDownloadDispatcher(
     }
 
     private suspend fun workerLoop(workerId: Int) {
-        // Each worker continuously processes jobs from the channel
         for (job in jobChannel) {
             try {
-                // Actual HTTP request
                 val content = withContext(Dispatchers.IO) {
                     val originalUrl = URL(job.url)
                     val isHttps = originalUrl.protocol.equals("https", ignoreCase = true)
                     
-                    // For HTTPS we must use the hostname — TLS SNI & cert validation require it.
-                    // For plain HTTP we can connect directly to the resolved IP to bypass OS-level DNS.
                     val urlConn = if (isHttps) {
                         originalUrl.openConnection() as HttpURLConnection
                     } else {
@@ -58,7 +51,6 @@ class DefaultDownloadDispatcher(
                     }
                     urlConn.requestMethod = "GET"
                     
-                    // Force the Host header so the remote server knows which virtual host we want
                     val hostHeader = if (originalUrl.port == -1) originalUrl.host else "${originalUrl.host}:${originalUrl.port}"
                     urlConn.setRequestProperty("Host", hostHeader)
                     urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; FzizziBot/1.0; +https://github.com/fzizzi/web-crawler)")
@@ -68,7 +60,6 @@ class DefaultDownloadDispatcher(
                     
                     val responseCode = urlConn.responseCode
                     if (responseCode in 200..299) {
-                        // Guard against massive streams by reading up to the limit natively
                         val contentLength = urlConn.contentLengthLong
                         if (contentLength > maxSizeBytes) {
                             throw Exception("Content length $contentLength exceeds limit of $maxSizeBytes bytes")
@@ -76,19 +67,18 @@ class DefaultDownloadDispatcher(
                         
                         val bodyBytes = urlConn.inputStream.use { input ->
                             val bytes = input.readNBytes(maxSizeBytes)
-                            if (input.read() != -1) { // Stream still has more bytes despite reaching cap
+                            if (input.read() != -1) {
                                 throw Exception("Stream exceeded maximum allowed size of $maxSizeBytes bytes")
                             }
                             bytes
                         }
                         
-                        // Hash body to avoid checking dupes using the entire raw string length
                         val hashBytes = MessageDigest.getInstance("SHA-256").digest(bodyBytes)
                         val hash = hashBytes.joinToString("") { "%02x".format(it) }
 
                         val contentType = urlConn.contentType ?: "application/octet-stream"
                         val headers = urlConn.headerFields
-                            .filterKeys { it != null } // HttpURLConnection includes the status line with null key
+                            .filterKeys { it != null }
                             .mapValues { it.value.joinToString(", ") }
 
                         RawContent(job.url, contentType, bodyBytes, hash, headers)
@@ -104,7 +94,6 @@ class DefaultDownloadDispatcher(
     }
 
     override suspend fun dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<RawContent>> {
-        // Send the job to the channel for an available worker to pick up
         val deferred = CompletableDeferred<Result<RawContent>>()
         val job = DownloadJob(url, ipAddress, timeoutMs, deferred)
         jobChannel.send(job)

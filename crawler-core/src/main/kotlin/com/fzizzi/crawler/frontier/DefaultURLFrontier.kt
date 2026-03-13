@@ -4,7 +4,6 @@ import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-// ─── Priority Abstraction ──────────────────────────────────────────────────────
 
 interface Prioritizer {
     fun getPriority(url: String): Int
@@ -15,9 +14,6 @@ class DefaultPrioritizer(private val maxPriority: Int) : Prioritizer {
         if (url.contains(".gov") || url.contains(".edu")) maxPriority - 1 else 0
 }
 
-// ─── Back-Queue Routing ────────────────────────────────────────────────────────
-
-/** Maps a URL's host to a stable back-queue index (round-robin assignment). */
 class BackQueueRouter(private val numQueues: Int) {
     private val mappingTable = ConcurrentHashMap<String, Int>()
     private val nextQueueIndex = AtomicInteger(0)
@@ -30,8 +26,6 @@ class BackQueueRouter(private val numQueues: Int) {
     }
 }
 
-// ─── Freshness ─────────────────────────────────────────────────────────────────
-
 interface RecrawlStrategy {
     fun shouldRecrawl(url: String): Boolean
 }
@@ -40,17 +34,6 @@ class DefaultRecrawlStrategy : RecrawlStrategy {
     override fun shouldRecrawl(url: String): Boolean = false
 }
 
-// ─── Frontier ─────────────────────────────────────────────────────────────────
-
-/**
- * Mercator-style URL Frontier with pluggable queue storage and lock management.
- *
- * - Front queues handle priority (high-value domains first).
- * - Back queues enforce politeness (one active download per host bucket).
- * - Storage and locking are injectable, enabling both local and distributed operation.
- *
- * See DESIGN.md for how to swap in Redis-backed implementations for multi-node deployments.
- */
 class DefaultURLFrontier(
     private val numFrontQueues: Int = 3,
     private val numBackQueues: Int = 10,
@@ -78,7 +61,6 @@ class DefaultURLFrontier(
     private suspend fun routeFrontToBack() {
         val maxDrain = 1000
         var count = 0
-        // Drain from highest-priority front queues first
         for (priority in (numFrontQueues - 1) downTo 0) {
             while (count < maxDrain) {
                 val url = frontStorage.poll("front-$priority") ?: break
@@ -97,9 +79,9 @@ class DefaultURLFrontier(
             val url = backStorage.poll("back-$i")
             if (url != null) {
                 totalPending.decrementAndGet()
-                return url  // lock held — released by markCompleted
+                return url
             }
-            lockManager.release(i)  // queue was empty, release immediately
+            lockManager.release(i)
         }
         return null
     }
@@ -107,10 +89,6 @@ class DefaultURLFrontier(
     override suspend fun markCompleted(url: String) {
         val backIdx = backRouter.getQueueIndex(url)
         lockManager.release(backIdx)
-
-        if (recrawlStrategy.shouldRecrawl(url)) {
-            // Could re-enqueue to a delayed scheduler
-        }
     }
 
     override suspend fun isEmpty(): Boolean = totalPending.get() == 0

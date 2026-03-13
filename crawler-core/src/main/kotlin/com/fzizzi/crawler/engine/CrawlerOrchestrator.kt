@@ -34,15 +34,11 @@ class CrawlerOrchestrator(
 ) {
     suspend fun start(seeds: List<String>) = coroutineScope {
         logger.info(LogCategory.ORCHESTRATOR, "Starting crawl with ${seeds.size} seed(s): ${seeds.joinToString()}")
-        // Add seeds to urlStorage so self-links never re-queue them for a second download
         seeds.forEach { urlStorage.markSeen(it) }
         urlFrontier.addAll(seeds)
 
-        // Bounded channel decouples the fast crawler from the potentially slow sink.
-        // The orchestrator fire-and-forgets events; a dedicated coroutine drains them.
         val eventChannel = Channel<CrawlEvent>(sinkChannelCapacity)
 
-        // Sink consumer — runs independently, never blocks the crawl loop
         val sinkJob = launch {
             for (event in eventChannel) {
                 try {
@@ -53,8 +49,6 @@ class CrawlerOrchestrator(
             }
         }
 
-        // url -> set of all pages that linked to it (seeds absent = empty list)
-        // ConcurrentHashMap with concurrent Set values; compute() for atomic writes
         val referrerMap = java.util.concurrent.ConcurrentHashMap<String, MutableSet<String>>()
 
         while (isActive) {
@@ -93,7 +87,6 @@ class CrawlerOrchestrator(
                         contentStorage.markSeen(content)
                         logger.info(LogCategory.ORCHESTRATOR, "Crawled $currentUrl (${content.bytes.size / 1024}KB)")
 
-                        // Run all applicable handlers sequentially
                         val activeHandlers = handlers.filter { it.canHandle(content.contentType) }
                         val discoveredLinks = mutableListOf<String>()
                         val aggregatedMetadata = mutableMapOf<String, Any>()
@@ -115,7 +108,6 @@ class CrawlerOrchestrator(
                                 urlStorage.markSeen(link)
                                 newUrls.add(link)
                             }
-                            // Record this page as a referrer — but never record a page as its own referrer
                             if (link != currentUrl) {
                                 referrerMap.compute(link) { _, existing ->
                                     (existing ?: java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())).also { it.add(currentUrl) }
@@ -128,7 +120,6 @@ class CrawlerOrchestrator(
                             urlFrontier.addAll(newUrls)
                         }
 
-                        // Emit to sink via channel — fire-and-forget, never blocks crawl
                         val event = CrawlEvent(
                             url = currentUrl,
                             referrerUrls = referrerMap[currentUrl]?.toList() ?: emptyList(),
@@ -148,8 +139,8 @@ class CrawlerOrchestrator(
             deferreds.awaitAll()
         }
 
-        eventChannel.close()  // signal sink consumer to finish draining
-        sinkJob.join()         // wait for all events to be processed before returning
+        eventChannel.close()
+        sinkJob.join()
     }
 
     private fun extractDomain(url: String): String {

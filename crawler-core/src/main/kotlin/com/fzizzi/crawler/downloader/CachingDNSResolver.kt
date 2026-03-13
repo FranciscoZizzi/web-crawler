@@ -13,11 +13,9 @@ class CachingDNSResolver(
     private val logger: CrawlerLogger = NoOpLogger
 ) : DNSResolver {
 
-    // In-memory DNS cache
     private val dnsCache = ConcurrentHashMap<String, String>()
 
     init {
-        // Periodic background updates to refresh the cache
         backgroundScope.launch {
             while (isActive) {
                 delay(1.hours)
@@ -27,14 +25,12 @@ class CachingDNSResolver(
     }
 
     override suspend fun resolve(domain: String): Result<String> {
-        // Attempt to get from cache first to avoid synchronous blocking call
         val cachedIp = dnsCache[domain]
         if (cachedIp != null) {
             logger.debug(LogCategory.DNS, "Cache hit for $domain -> $cachedIp")
             return Result.success(cachedIp)
         }
 
-        // If not in cache, resolve and cache it
         return withContext(Dispatchers.IO) {
             try {
                 val address = InetAddress.getByName(domain).hostAddress
@@ -49,7 +45,6 @@ class CachingDNSResolver(
     }
 
     private suspend fun refreshCache() = withContext(Dispatchers.IO) {
-        // Iterate through known domains and refresh IPs
         dnsCache.keys().toList().forEach { domain ->
             try {
                 val address = InetAddress.getByName(domain).hostAddress
