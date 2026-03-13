@@ -28,7 +28,6 @@ class CrawlerOrchestrator(
     private val contentStorage: ContentStorage,
     private val urlFilter: URLFilter,
     private val urlStorage: URLStorage,
-    private val clusterRouter: ConsistentHashRouter<String>? = null,
     private val sink: CrawlResultSink = NoOpSink,
     private val sinkChannelCapacity: Int = 500,
     private val logger: CrawlerLogger = NoOpLogger
@@ -75,11 +74,6 @@ class CrawlerOrchestrator(
                 async {
                     try {
                         val domain = extractDomain(currentUrl)
-
-                        if (clusterRouter != null && !clusterRouter.isLocal(domain)) {
-                            logger.debug(LogCategory.CLUSTER, "Skipping $currentUrl — owned by another node")
-                            return@async
-                        }
 
                         val ipAddress = dnsResolver.resolve(domain).getOrElse {
                             logger.warn(LogCategory.DNS, "DNS resolution failed for $domain: ${it.message}")

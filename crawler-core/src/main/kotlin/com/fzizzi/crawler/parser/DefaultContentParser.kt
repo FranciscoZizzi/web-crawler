@@ -29,7 +29,7 @@ class DefaultContentParser(
         // 4. Validate well-formedness using JSoup
         try {
             val doc = Jsoup.parse(content)
-            val bodyText = doc.body()?.text() ?: ""
+            val bodyText = doc.body().text() ?: ""
             if (bodyText.length < minContentLength) {
                 return false
             }

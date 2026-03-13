@@ -1,7 +1,6 @@
 package com.fzizzi.crawler.engine
 
 import com.fzizzi.crawler.downloader.*
-import com.fzizzi.crawler.extractor.DefaultLinkExtractor
 import com.fzizzi.crawler.extractor.HtmlHandler
 import com.fzizzi.crawler.frontier.DefaultURLFrontier
 import com.fzizzi.crawler.parser.DefaultContentParser
@@ -84,12 +83,11 @@ class CrawlerOrchestratorIntegrationTest {
     private lateinit var downloader: DefaultDownloader
     private lateinit var contentParser: DefaultContentParser
     private lateinit var urlFilter: DefaultURLFilter
-    
+
     // Defaults for Storage & Extractor
     private lateinit var contentSeen: MemoryContentStorage
     private lateinit var urlSeen: MemoryURLStorage
-    private lateinit var linkExtractor: DefaultLinkExtractor
-    
+
     private lateinit var orchestrator: CrawlerOrchestrator
 
     @BeforeEach
@@ -111,9 +109,8 @@ class CrawlerOrchestratorIntegrationTest {
 
         contentSeen = MemoryContentStorage()
         urlSeen = MemoryURLStorage()
-        linkExtractor = DefaultLinkExtractor()
 
-        val htmlHandler = HtmlHandler(contentParser, linkExtractor)
+        val htmlHandler = HtmlHandler(contentParser)
 
         orchestrator = CrawlerOrchestrator(
             urlFrontier = urlFrontier,
@@ -122,7 +119,7 @@ class CrawlerOrchestratorIntegrationTest {
             handlers = listOf(htmlHandler),
             contentStorage = contentSeen,
             urlFilter = urlFilter,
-            urlStorage = urlSeen
+            urlStorage = urlSeen,
         )
     }
 

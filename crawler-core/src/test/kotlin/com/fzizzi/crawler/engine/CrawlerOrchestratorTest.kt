@@ -47,7 +47,7 @@ class CrawlerOrchestratorTest {
             handlers = listOf(mockHandler),
             contentStorage = mockContentStorage,
             urlFilter = urlFilter,
-            urlStorage = mockUrlStorage
+            urlStorage = mockUrlStorage,
         )
     }
 
@@ -167,7 +167,7 @@ class CrawlerOrchestratorReferrerTest {
         handlers: List<ContentHandler>,
         contentStorage: ContentStorage,
         urlStorage: URLStorage,
-        sink: CrawlResultSink
+        sink: CrawlResultSink,
     ) = CrawlerOrchestrator(
         urlFrontier    = frontier,
         htmlDownloader = downloader,
@@ -176,7 +176,7 @@ class CrawlerOrchestratorReferrerTest {
         contentStorage = contentStorage,
         urlFilter      = DefaultURLFilter(),
         urlStorage     = urlStorage,
-        sink           = sink
+        sink           = sink,
     )
 
     @Test
