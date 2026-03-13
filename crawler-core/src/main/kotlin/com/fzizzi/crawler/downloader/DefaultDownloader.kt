@@ -11,33 +11,103 @@ import kotlinx.coroutines.withTimeout
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 
-class RobotsCache {
-    // domain -> List of disallowed paths
-    private val cache = ConcurrentHashMap<String, List<String>>()
+class RobotsCache(
+    private val cacheTtlMs: Long = 24 * 60 * 60 * 1000L,  // 24 h
+    private val userAgent: String = "*"
+) {
+    private data class CacheEntry(val disallowed: List<String>, val allowed: List<String>, val fetchedAtMs: Long)
+
+    private val cache = ConcurrentHashMap<String, CacheEntry>()
 
     suspend fun isAllowed(url: String, domain: String): Boolean {
         val path = try {
-            URI(url).path.takeIf { it.isNotEmpty() } ?: "/"
+            URI(url).path.let { if (it.isEmpty()) "/" else it }
         } catch (e: Exception) {
-            "/" // TODO see if it's the correct way to handle, do the same with any try catch block
+            "/"
         }
 
-        var disallowedPaths = cache[domain]
-        if (disallowedPaths == null) {
-            disallowedPaths = fetchRobotsTxt(domain)
-            cache[domain] = disallowedPaths
-        }
+        val entry = getOrFetch(domain)
 
-        return disallowedPaths.none { path.startsWith(it) }
+        // Longest-match wins: find the most specific rule that applies.
+        // An Allow beats a Disallow of the same or shorter length.
+        val bestDisallow = entry.disallowed.filter { path.startsWith(it) }.maxByOrNull { it.length }
+        val bestAllow    = entry.allowed.filter { path.startsWith(it) }.maxByOrNull { it.length }
+
+        return when {
+            bestDisallow == null -> true  // no disallow rule matches → allowed
+            bestAllow    == null -> false // disallow matches, no allow override → blocked
+            else -> bestAllow.length >= bestDisallow.length // allow wins if at least as specific
+        }
     }
 
-    private suspend fun fetchRobotsTxt(domain: String): List<String> = withContext(Dispatchers.IO) {
-        // TODO implement
-        // Placeholder implementation for fetching and parsing robots.txt
-        // In a real implementation this would make an HTTP request to http://$domain/robots.txt
+    private suspend fun getOrFetch(domain: String): CacheEntry {
+        val existing = cache[domain]
+        if (existing != null && System.currentTimeMillis() - existing.fetchedAtMs < cacheTtlMs) {
+            return existing
+        }
+        val fresh = fetchAndParse(domain)
+        cache[domain] = fresh
+        return fresh
+    }
+
+    private suspend fun fetchAndParse(domain: String): CacheEntry = withContext(Dispatchers.IO) {
         val disallowed = mutableListOf<String>()
-        // Default to allow everything for this prototype
-        disallowed
+        val allowed    = mutableListOf<String>()
+
+        try {
+            // Try HTTPS, fall back to HTTP if the connection itself fails (e.g. no TLS)
+            val conn: java.net.HttpURLConnection = run {
+                try {
+                    val c = java.net.URL("https://$domain/robots.txt").openConnection() as java.net.HttpURLConnection
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; FzizziBot/1.0)")
+                    c.connectTimeout = 3_000
+                    c.readTimeout    = 3_000
+                    c.connect()      // actually attempt the TLS handshake here
+                    c
+                } catch (e: Exception) {
+                    // HTTPS failed (SSL, connection refused, etc.) — retry over plain HTTP
+                    val c = java.net.URL("http://$domain/robots.txt").openConnection() as java.net.HttpURLConnection
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; FzizziBot/1.0)")
+                    c.connectTimeout = 3_000
+                    c.readTimeout    = 3_000
+                    c
+                }
+            }
+
+            if (conn.responseCode != 200) {
+                // 404 / 410 → no restrictions; 5xx → fail-open
+                return@withContext CacheEntry(emptyList(), emptyList(), System.currentTimeMillis())
+            }
+
+            val lines = conn.inputStream.bufferedReader().readLines()
+            conn.disconnect()
+
+            // Parse rules applicable to our user-agent or the wildcard agent
+            var applicable = false
+            for (rawLine in lines) {
+                val line = rawLine.substringBefore('#').trim()
+                when {
+                    line.isBlank() -> applicable = false  // blank line ends a record
+                    line.startsWith("User-agent:", ignoreCase = true) -> {
+                        val agent = line.removePrefix("User-agent:").trim()
+                        applicable = agent == "*" || agent.equals(userAgent, ignoreCase = true)
+                    }
+                    applicable && line.startsWith("Disallow:", ignoreCase = true) -> {
+                        val p = line.removePrefix("Disallow:").trim()
+                        if (p.isNotEmpty()) disallowed.add(p)
+                    }
+                    applicable && line.startsWith("Allow:", ignoreCase = true) -> {
+                        val p = line.removePrefix("Allow:").trim()
+                        if (p.isNotEmpty()) allowed.add(p)
+                    }
+                    // Crawl-delay and Sitemap are intentionally ignored
+                }
+            }
+        } catch (e: Exception) {
+            // Network error, malformed URL, etc. — fail-open (allow everything)
+        }
+
+        CacheEntry(disallowed, allowed, System.currentTimeMillis())
     }
 }
 
@@ -84,4 +154,3 @@ class DefaultDownloader(
         }
     }
 }
-// TODO: idk where to put this but remember to make sure there is room to handle files, check the issues that can happen with url formatting and such
