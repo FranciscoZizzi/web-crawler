@@ -77,7 +77,7 @@ class CrawlerOrchestratorTest {
         
         // 7. Content Seen
         coEvery { mockContentStorage.isSeen(content) } returns false
-        coEvery { mockContentStorage.add(content) } just Runs
+        coEvery { mockContentStorage.markSeen(content) } just Runs
         
         // 8. Extract Links
         coEvery { mockLinkExtractor.extract(content) } returns listOf(extractedLink)
@@ -102,7 +102,7 @@ class CrawlerOrchestratorTest {
         coVerify(exactly = 1) { mockFrontier.addAll(listOf(seedUrl)) }
         coVerify(exactly = 1) { mockDownloader.download(seedUrl, ipAddress) }
         coVerify(exactly = 1) { mockContentParser.parseAndValidate(content) }
-        coVerify(exactly = 1) { mockContentStorage.add(content) }
+        coVerify(exactly = 1) { mockContentStorage.markSeen(content) }
         coVerify(exactly = 1) { mockUrlStorage.add(extractedLink) }
         coVerify(exactly = 1) { mockFrontier.addAll(listOf(extractedLink)) }
         coVerify(exactly = 1) { mockFrontier.markCompleted(seedUrl) }
@@ -152,7 +152,7 @@ class CrawlerOrchestratorTest {
         orchestrator.start(listOf(seedUrl))
 
         coVerify(exactly = 1) { mockContentParser.parseAndValidate(content) }
-        coVerify(exactly = 0) { mockContentStorage.add(any()) }
+        coVerify(exactly = 0) { mockContentStorage.markSeen(any()) }
         coVerify(exactly = 0) { mockLinkExtractor.extract(any()) }
         coVerify(exactly = 1) { mockFrontier.markCompleted(seedUrl) }
     }

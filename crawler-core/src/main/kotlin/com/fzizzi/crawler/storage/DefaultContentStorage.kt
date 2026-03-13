@@ -11,7 +11,7 @@ class DefaultContentStorage : ContentStorage {
         return seenHashes.contains(content.hash)
     }
 
-    override suspend fun add(content: HTMLContent) {
+    override suspend fun markSeen(content: HTMLContent) {
         seenHashes.add(content.hash)
     }
 }
