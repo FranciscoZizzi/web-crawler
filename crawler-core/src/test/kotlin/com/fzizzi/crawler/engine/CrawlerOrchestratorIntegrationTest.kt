@@ -2,6 +2,7 @@ package com.fzizzi.crawler.engine
 
 import com.fzizzi.crawler.downloader.*
 import com.fzizzi.crawler.extractor.DefaultLinkExtractor
+import com.fzizzi.crawler.extractor.HtmlHandler
 import com.fzizzi.crawler.frontier.DefaultURLFrontier
 import com.fzizzi.crawler.parser.DefaultContentParser
 import com.fzizzi.crawler.storage.MemoryContentStorage
@@ -112,13 +113,14 @@ class CrawlerOrchestratorIntegrationTest {
         urlSeen = MemoryURLStorage()
         linkExtractor = DefaultLinkExtractor()
 
+        val htmlHandler = HtmlHandler(contentParser, linkExtractor)
+
         orchestrator = CrawlerOrchestrator(
             urlFrontier = urlFrontier,
             htmlDownloader = downloader,
             dnsResolver = dnsResolver,
-            contentParser = contentParser,
+            handlers = listOf(htmlHandler),
             contentStorage = contentSeen,
-            linkExtractor = linkExtractor,
             urlFilter = urlFilter,
             urlStorage = urlSeen
         )

@@ -5,7 +5,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
-import com.fzizzi.crawler.model.HTMLContent
+import com.fzizzi.crawler.model.RawContent
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -235,7 +235,7 @@ class DefaultDownloaderTest {
 
         val url = "https://example.com/page"
         val ip = "1.2.3.4"
-        val content = HTMLContent(url, "html", "hash")
+        val content = RawContent(url, "text/html", "html".toByteArray(), "hash")
 
         coEvery { mockRobotsCache.isAllowed(url, "example.com") } returns true
 
@@ -257,7 +257,7 @@ class DefaultDownloaderTest {
 
         coEvery { mockRobotsCache.isAllowed(url, "example.com") } returns true
 
-        val deferred = CompletableDeferred<Result<HTMLContent>>()
+        val deferred = CompletableDeferred<Result<RawContent>>()
         coEvery { mockDispatcher.dispatch(url, ip, any()) } returns deferred
 
         val result = downloader.download(url, ip)

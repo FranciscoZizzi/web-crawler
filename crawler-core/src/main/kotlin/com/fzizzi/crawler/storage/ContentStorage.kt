@@ -1,8 +1,8 @@
 package com.fzizzi.crawler.storage
 
-import com.fzizzi.crawler.model.HTMLContent
+import com.fzizzi.crawler.model.RawContent
 
 interface ContentStorage {
-    suspend fun isSeen(content: HTMLContent): Boolean
-    suspend fun markSeen(content: HTMLContent)
+    suspend fun isSeen(content: RawContent): Boolean
+    suspend fun markSeen(content: RawContent)
 }

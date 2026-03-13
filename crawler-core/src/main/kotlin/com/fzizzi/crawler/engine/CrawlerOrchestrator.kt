@@ -2,13 +2,12 @@ package com.fzizzi.crawler.engine
 
 import com.fzizzi.crawler.downloader.DNSResolver
 import com.fzizzi.crawler.downloader.HTMLDownloader
+import com.fzizzi.crawler.extractor.ContentHandler
 import com.fzizzi.crawler.frontier.URLFrontier
-import com.fzizzi.crawler.extractor.LinkExtractor
 import com.fzizzi.crawler.logging.CrawlerLogger
 import com.fzizzi.crawler.logging.LogCategory
 import com.fzizzi.crawler.logging.NoOpLogger
 import com.fzizzi.crawler.model.CrawlEvent
-import com.fzizzi.crawler.parser.ContentParser
 import com.fzizzi.crawler.sink.CrawlResultSink
 import com.fzizzi.crawler.sink.NoOpSink
 import com.fzizzi.crawler.storage.ContentStorage
@@ -25,9 +24,8 @@ class CrawlerOrchestrator(
     private val urlFrontier: URLFrontier,
     private val htmlDownloader: HTMLDownloader,
     private val dnsResolver: DNSResolver,
-    private val contentParser: ContentParser,
+    private val handlers: List<ContentHandler>,
     private val contentStorage: ContentStorage,
-    private val linkExtractor: LinkExtractor,
     private val urlFilter: URLFilter,
     private val urlStorage: URLStorage,
     private val clusterRouter: ConsistentHashRouter<String>? = null,
@@ -89,28 +87,35 @@ class CrawlerOrchestrator(
                         }
 
                         logger.debug(LogCategory.DOWNLOADER, "Downloading $currentUrl")
-                        val htmlContent = htmlDownloader.download(currentUrl, ipAddress).getOrElse {
+                        val content = htmlDownloader.download(currentUrl, ipAddress).getOrElse {
                             logger.warn(LogCategory.DOWNLOADER, "Download failed for $currentUrl: ${it.message}")
                             return@async
                         }
 
-                        val isValid = contentParser.parseAndValidate(htmlContent)
-                        if (!isValid) {
-                            logger.debug(LogCategory.PARSER, "Content rejected for $currentUrl")
-                            return@async
-                        }
-
-                        if (contentStorage.isSeen(htmlContent)) {
+                        if (contentStorage.isSeen(content)) {
                             logger.debug(LogCategory.STORAGE, "Duplicate content skipped for $currentUrl")
                             return@async
                         }
-                        contentStorage.markSeen(htmlContent)
-                        logger.info(LogCategory.ORCHESTRATOR, "Crawled $currentUrl (${htmlContent.content.length / 1024}KB)")
+                        contentStorage.markSeen(content)
+                        logger.info(LogCategory.ORCHESTRATOR, "Crawled $currentUrl (${content.bytes.size / 1024}KB)")
 
-                        val extractedLinks = linkExtractor.extract(htmlContent) // TODO add extension module to allow PNG downloader, Web Monitor, etc.
+                        // Run all applicable handlers sequentially
+                        val activeHandlers = handlers.filter { it.canHandle(content.contentType) }
+                        val discoveredLinks = mutableListOf<String>()
+                        val aggregatedMetadata = mutableMapOf<String, Any>()
+
+                        for (handler in activeHandlers) {
+                            try {
+                                val result = handler.handle(content)
+                                discoveredLinks.addAll(result.discoveredLinks)
+                                aggregatedMetadata.putAll(result.extractedMetadata)
+                            } catch (e: Exception) {
+                                logger.error(LogCategory.EXTRACTOR, "Handler ${handler.id} failed for $currentUrl", e)
+                            }
+                        }
 
                         val newUrls = mutableListOf<String>()
-                        for (link in extractedLinks) {
+                        for (link in discoveredLinks) {
                             if (!urlFilter.isAllowed(link)) continue
                             if (!urlStorage.isSeen(link)) {
                                 urlStorage.markSeen(link)
@@ -133,9 +138,10 @@ class CrawlerOrchestrator(
                         val event = CrawlEvent(
                             url = currentUrl,
                             referrerUrls = referrerMap[currentUrl]?.toList() ?: emptyList(),
-                            html = htmlContent,
+                            rawContent = content,
                             extractedLinks = newUrls,
-                            ipAddress = ipAddress
+                            ipAddress = ipAddress,
+                            metadata = aggregatedMetadata
                         )
                         eventChannel.send(event)
 

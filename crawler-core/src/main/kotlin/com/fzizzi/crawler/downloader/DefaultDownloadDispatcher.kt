@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import com.fzizzi.crawler.model.HTMLContent
+import com.fzizzi.crawler.model.RawContent
 import java.net.URL
 import java.net.HttpURLConnection
 import java.security.MessageDigest
@@ -17,7 +18,7 @@ data class DownloadJob(
     val url: String,
     val ipAddress: String,
     val timeoutMs: Long,
-    val result: CompletableDeferred<Result<HTMLContent>>
+    val result: CompletableDeferred<Result<RawContent>>
 )
 
 class DefaultDownloadDispatcher(
@@ -81,13 +82,16 @@ class DefaultDownloadDispatcher(
                             bytes
                         }
                         
-                        val body = String(bodyBytes, Charsets.UTF_8)
-                        
                         // Hash body to avoid checking dupes using the entire raw string length
                         val hashBytes = MessageDigest.getInstance("SHA-256").digest(bodyBytes)
                         val hash = hashBytes.joinToString("") { "%02x".format(it) }
-                        
-                        HTMLContent(job.url, body, hash)
+
+                        val contentType = urlConn.contentType ?: "application/octet-stream"
+                        val headers = urlConn.headerFields
+                            .filterKeys { it != null } // HttpURLConnection includes the status line with null key
+                            .mapValues { it.value.joinToString(", ") }
+
+                        RawContent(job.url, contentType, bodyBytes, hash, headers)
                     } else {
                         throw Exception("HTTP Failed with code $responseCode")
                     }
@@ -99,9 +103,9 @@ class DefaultDownloadDispatcher(
         }
     }
 
-    override suspend fun dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<HTMLContent>> {
+    override suspend fun dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<RawContent>> {
         // Send the job to the channel for an available worker to pick up
-        val deferred = CompletableDeferred<Result<HTMLContent>>()
+        val deferred = CompletableDeferred<Result<RawContent>>()
         val job = DownloadJob(url, ipAddress, timeoutMs, deferred)
         jobChannel.send(job)
         return deferred

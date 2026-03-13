@@ -4,6 +4,7 @@ import com.fzizzi.crawler.logging.CrawlerLogger
 import com.fzizzi.crawler.logging.LogCategory
 import com.fzizzi.crawler.logging.NoOpLogger
 import com.fzizzi.crawler.model.HTMLContent
+import com.fzizzi.crawler.model.RawContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
@@ -118,7 +119,7 @@ class DefaultDownloader(
     private val logger: CrawlerLogger = NoOpLogger
 ) : HTMLDownloader {
 
-    override suspend fun download(url: String, ipAddress: String?): Result<HTMLContent> {
+    override suspend fun download(url: String, ipAddress: String?): Result<RawContent> {
         if (ipAddress == null) {
             return Result.failure(IllegalArgumentException("IP Address is required"))
         }

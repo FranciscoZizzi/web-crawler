@@ -75,7 +75,7 @@ class DefaultDownloadDispatcherTest {
         val content = result.getOrNull()
         assertNotNull(content)
         assertEquals(url, content?.url)
-        assertEquals("<html><body>Success</body></html>", content?.content)
+        assertEquals("<html><body>Success</body></html>", content?.text)
         
         scope.cancel()
     }
