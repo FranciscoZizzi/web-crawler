@@ -4,3 +4,5 @@ plugins {
 rootProject.name = "web-crawler"
 include("crawler-core")
 include("crawler-api")
+include("crawler-tui")
+include("crawler-cli")
