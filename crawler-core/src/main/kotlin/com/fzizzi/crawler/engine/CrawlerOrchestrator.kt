@@ -26,7 +26,7 @@ class CrawlerOrchestrator(
     private val dnsResolver: DNSResolver,
     private val handlers: List<ContentHandler>,
     private val contentStorage: ContentStorage,
-    private val urlFilter: URLFilter,
+    private val urlFilters: List<URLFilter>,
     private val urlStorage: URLStorage,
     private val sink: CrawlResultSink = NoOpSink,
     private val sinkChannelCapacity: Int = 500,
@@ -110,7 +110,7 @@ class CrawlerOrchestrator(
 
                         val newUrls = mutableListOf<String>()
                         for (link in discoveredLinks) {
-                            if (!urlFilter.isAllowed(link)) continue
+                            if (urlFilters.any {!it.isAllowed(link)}) continue
                             if (!urlStorage.isSeen(link)) {
                                 urlStorage.markSeen(link)
                                 newUrls.add(link)
