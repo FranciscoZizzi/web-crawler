@@ -118,7 +118,7 @@ class CrawlerOrchestratorIntegrationTest {
             dnsResolver = dnsResolver,
             handlers = listOf(htmlHandler),
             contentStorage = contentSeen,
-            urlFilter = urlFilter,
+            urlFilters = listOf(urlFilter),
             urlStorage = urlSeen,
         )
     }

@@ -46,7 +46,7 @@ class CrawlerOrchestratorTest {
             dnsResolver = mockDnsResolver,
             handlers = listOf(mockHandler),
             contentStorage = mockContentStorage,
-            urlFilter = urlFilter,
+            urlFilters = listOf(urlFilter),
             urlStorage = mockUrlStorage,
         )
     }
@@ -174,7 +174,7 @@ class CrawlerOrchestratorReferrerTest {
         dnsResolver    = dns,
         handlers       = handlers,
         contentStorage = contentStorage,
-        urlFilter      = DefaultURLFilter(),
+        urlFilters = listOf(DefaultURLFilter()),
         urlStorage     = urlStorage,
         sink           = sink,
     )
