@@ -5,8 +5,8 @@ import com.fzizzi.crawler.downloader.HTMLDownloader
 import com.fzizzi.crawler.frontier.URLFrontier
 import com.fzizzi.crawler.extractor.LinkExtractor
 import com.fzizzi.crawler.parser.ContentParser
-import com.fzizzi.crawler.storage.ContentSeen
-import com.fzizzi.crawler.storage.URLSeen
+import com.fzizzi.crawler.storage.ContentStorage
+import com.fzizzi.crawler.storage.URLStorage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -18,10 +18,10 @@ class CrawlerOrchestrator(
     private val htmlDownloader: HTMLDownloader,
     private val dnsResolver: DNSResolver,
     private val contentParser: ContentParser,
-    private val contentSeen: ContentSeen,
+    private val contentStorage: ContentStorage,
     private val linkExtractor: LinkExtractor,
     private val urlFilter: URLFilter,
-    private val urlSeen: URLSeen,
+    private val urlStorage: URLStorage,
     private val clusterRouter: ConsistentHashRouter<String>? = null
 ) {
     suspend fun start(seeds: List<String>) = coroutineScope {
@@ -73,8 +73,8 @@ class CrawlerOrchestrator(
                         if (!isValid) return@async
 
                         // Step 5 & 6: Check Content Seen? and store if not seen
-                        if (contentSeen.isSeen(htmlContent)) return@async
-                        contentSeen.add(htmlContent)
+                        if (contentStorage.isSeen(htmlContent)) return@async
+                        contentStorage.add(htmlContent)
 
                         // Step 7: Extract links
                         val extractedLinks = linkExtractor.extract(htmlContent) // TODO add extension module to allow PNG downloader, Web Monitor, etc.
@@ -86,8 +86,8 @@ class CrawlerOrchestrator(
                             if (!urlFilter.isAllowed(link)) continue
 
                             // Step 9, 10 & 11: Check if URL Seen?, if not add to URL Seen? and Frontier
-                            if (!urlSeen.isSeen(link)) {
-                                urlSeen.add(link)
+                            if (!urlStorage.isSeen(link)) {
+                                urlStorage.add(link)
                                 newUrls.add(link)
                             }
                         }

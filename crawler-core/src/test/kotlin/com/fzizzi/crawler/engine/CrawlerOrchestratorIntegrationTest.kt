@@ -3,10 +3,9 @@ package com.fzizzi.crawler.engine
 import com.fzizzi.crawler.downloader.*
 import com.fzizzi.crawler.extractor.DefaultLinkExtractor
 import com.fzizzi.crawler.frontier.DefaultURLFrontier
-import com.fzizzi.crawler.model.HTMLContent
 import com.fzizzi.crawler.parser.DefaultContentParser
-import com.fzizzi.crawler.storage.DefaultContentSeen
-import com.fzizzi.crawler.storage.DefaultURLSeen
+import com.fzizzi.crawler.storage.DefaultContentStorage
+import com.fzizzi.crawler.storage.DefaultURLStorage
 import com.sun.net.httpserver.HttpServer
 import io.mockk.*
 import kotlinx.coroutines.CoroutineScope
@@ -86,8 +85,8 @@ class CrawlerOrchestratorIntegrationTest {
     private lateinit var urlFilter: DefaultURLFilter
     
     // Defaults for Storage & Extractor
-    private lateinit var contentSeen: DefaultContentSeen
-    private lateinit var urlSeen: DefaultURLSeen
+    private lateinit var contentSeen: DefaultContentStorage
+    private lateinit var urlSeen: DefaultURLStorage
     private lateinit var linkExtractor: DefaultLinkExtractor
     
     private lateinit var orchestrator: CrawlerOrchestrator
@@ -109,8 +108,8 @@ class CrawlerOrchestratorIntegrationTest {
         contentParser = DefaultContentParser(minContentLength = 10) // Small min length to pass test pages
         urlFilter = DefaultURLFilter()
 
-        contentSeen = DefaultContentSeen()
-        urlSeen = DefaultURLSeen()
+        contentSeen = DefaultContentStorage()
+        urlSeen = DefaultURLStorage()
         linkExtractor = DefaultLinkExtractor()
 
         orchestrator = CrawlerOrchestrator(
@@ -118,10 +117,10 @@ class CrawlerOrchestratorIntegrationTest {
             htmlDownloader = downloader,
             dnsResolver = dnsResolver,
             contentParser = contentParser,
-            contentSeen = contentSeen,
+            contentStorage = contentSeen,
             linkExtractor = linkExtractor,
             urlFilter = urlFilter,
-            urlSeen = urlSeen
+            urlStorage = urlSeen
         )
     }
 

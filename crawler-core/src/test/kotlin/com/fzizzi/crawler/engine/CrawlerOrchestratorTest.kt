@@ -6,8 +6,8 @@ import com.fzizzi.crawler.extractor.LinkExtractor
 import com.fzizzi.crawler.frontier.URLFrontier
 import com.fzizzi.crawler.model.HTMLContent
 import com.fzizzi.crawler.parser.ContentParser
-import com.fzizzi.crawler.storage.ContentSeen
-import com.fzizzi.crawler.storage.URLSeen
+import com.fzizzi.crawler.storage.ContentStorage
+import com.fzizzi.crawler.storage.URLStorage
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -20,10 +20,10 @@ class CrawlerOrchestratorTest {
     private lateinit var mockDownloader: HTMLDownloader
     private lateinit var mockDnsResolver: DNSResolver
     private lateinit var mockContentParser: ContentParser
-    private lateinit var mockContentSeen: ContentSeen
+    private lateinit var mockContentStorage: ContentStorage
     private lateinit var mockLinkExtractor: LinkExtractor
     private lateinit var urlFilter: DefaultURLFilter
-    private lateinit var mockUrlSeen: URLSeen
+    private lateinit var mockUrlStorage: URLStorage
 
     private lateinit var orchestrator: CrawlerOrchestrator
 
@@ -33,20 +33,20 @@ class CrawlerOrchestratorTest {
         mockDownloader = mockk()
         mockDnsResolver = mockk()
         mockContentParser = mockk()
-        mockContentSeen = mockk()
+        mockContentStorage = mockk()
         mockLinkExtractor = mockk()
         urlFilter = DefaultURLFilter()
-        mockUrlSeen = mockk()
+        mockUrlStorage = mockk()
 
         orchestrator = CrawlerOrchestrator(
             urlFrontier = mockFrontier,
             htmlDownloader = mockDownloader,
             dnsResolver = mockDnsResolver,
             contentParser = mockContentParser,
-            contentSeen = mockContentSeen,
+            contentStorage = mockContentStorage,
             linkExtractor = mockLinkExtractor,
             urlFilter = urlFilter,
-            urlSeen = mockUrlSeen
+            urlStorage = mockUrlStorage
         )
     }
 
@@ -76,8 +76,8 @@ class CrawlerOrchestratorTest {
         coEvery { mockContentParser.parseAndValidate(content) } returns true
         
         // 7. Content Seen
-        coEvery { mockContentSeen.isSeen(content) } returns false
-        coEvery { mockContentSeen.add(content) } just Runs
+        coEvery { mockContentStorage.isSeen(content) } returns false
+        coEvery { mockContentStorage.add(content) } just Runs
         
         // 8. Extract Links
         coEvery { mockLinkExtractor.extract(content) } returns listOf(extractedLink)
@@ -85,8 +85,8 @@ class CrawlerOrchestratorTest {
         // 9. URL Filter (Using actual implementation, which will approve 'https://example.com/page1')
         
         // 10. URL Seen
-        coEvery { mockUrlSeen.isSeen(extractedLink) } returns false
-        coEvery { mockUrlSeen.add(extractedLink) } just Runs
+        coEvery { mockUrlStorage.isSeen(extractedLink) } returns false
+        coEvery { mockUrlStorage.add(extractedLink) } just Runs
         
         // 11. Add new URL back to frontier
         val addedUrlsSlot = slot<List<String>>()
@@ -102,8 +102,8 @@ class CrawlerOrchestratorTest {
         coVerify(exactly = 1) { mockFrontier.addAll(listOf(seedUrl)) }
         coVerify(exactly = 1) { mockDownloader.download(seedUrl, ipAddress) }
         coVerify(exactly = 1) { mockContentParser.parseAndValidate(content) }
-        coVerify(exactly = 1) { mockContentSeen.add(content) }
-        coVerify(exactly = 1) { mockUrlSeen.add(extractedLink) }
+        coVerify(exactly = 1) { mockContentStorage.add(content) }
+        coVerify(exactly = 1) { mockUrlStorage.add(extractedLink) }
         coVerify(exactly = 1) { mockFrontier.addAll(listOf(extractedLink)) }
         coVerify(exactly = 1) { mockFrontier.markCompleted(seedUrl) }
         
@@ -145,14 +145,14 @@ class CrawlerOrchestratorTest {
         coEvery { mockContentParser.parseAndValidate(content) } returns true
         
         // Inject content duplicate
-        coEvery { mockContentSeen.isSeen(content) } returns true
+        coEvery { mockContentStorage.isSeen(content) } returns true
         
         coEvery { mockFrontier.markCompleted(seedUrl) } just Runs
 
         orchestrator.start(listOf(seedUrl))
 
         coVerify(exactly = 1) { mockContentParser.parseAndValidate(content) }
-        coVerify(exactly = 0) { mockContentSeen.add(any()) }
+        coVerify(exactly = 0) { mockContentStorage.add(any()) }
         coVerify(exactly = 0) { mockLinkExtractor.extract(any()) }
         coVerify(exactly = 1) { mockFrontier.markCompleted(seedUrl) }
     }

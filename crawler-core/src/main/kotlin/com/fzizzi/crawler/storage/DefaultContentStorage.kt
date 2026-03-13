@@ -4,7 +4,7 @@ import com.fzizzi.crawler.model.HTMLContent
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-class DefaultContentSeen : ContentSeen {
+class DefaultContentStorage : ContentStorage {
     private val seenHashes = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     override suspend fun isSeen(content: HTMLContent): Boolean {

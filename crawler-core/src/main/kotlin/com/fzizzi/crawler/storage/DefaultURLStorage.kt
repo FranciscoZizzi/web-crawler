@@ -3,7 +3,7 @@ package com.fzizzi.crawler.storage
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-class DefaultURLSeen : URLSeen {
+class DefaultURLStorage : URLStorage {
     private val seenSet = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     override suspend fun isSeen(url: String): Boolean {
