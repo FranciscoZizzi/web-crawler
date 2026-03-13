@@ -2,7 +2,7 @@ package com.fzizzi.crawler.sink
 
 import com.fzizzi.crawler.model.CrawlEvent
 
-interface CrawlResultSink {
+fun interface CrawlResultSink {
     suspend fun accept(event: CrawlEvent)
 }
 

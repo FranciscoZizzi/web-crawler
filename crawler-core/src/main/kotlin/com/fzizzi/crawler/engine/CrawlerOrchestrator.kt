@@ -37,6 +37,8 @@ class CrawlerOrchestrator(
 ) {
     suspend fun start(seeds: List<String>) = coroutineScope {
         logger.info(LogCategory.ORCHESTRATOR, "Starting crawl with ${seeds.size} seed(s): ${seeds.joinToString()}")
+        // Add seeds to urlStorage so self-links never re-queue them for a second download
+        seeds.forEach { urlStorage.markSeen(it) }
         urlFrontier.addAll(seeds)
 
         // Bounded channel decouples the fast crawler from the potentially slow sink.
@@ -54,9 +56,9 @@ class CrawlerOrchestrator(
             }
         }
 
-        // Track referrer for discovered links (seeds have no referrer, so they're simply absent from the map)
-        val referrerMap = java.util.concurrent.ConcurrentHashMap<String, String>()
-        // seeds are intentionally not added — absence == seed
+        // url -> set of all pages that linked to it (seeds absent = empty list)
+        // ConcurrentHashMap with concurrent Set values; compute() for atomic writes
+        val referrerMap = java.util.concurrent.ConcurrentHashMap<String, MutableSet<String>>()
 
         while (isActive) {
             val batchUrls = mutableListOf<String>()
@@ -111,13 +113,18 @@ class CrawlerOrchestrator(
                         for (link in extractedLinks) {
                             if (!urlFilter.isAllowed(link)) continue
                             if (!urlStorage.isSeen(link)) {
-                                urlStorage.add(link)
+                                urlStorage.markSeen(link)
                                 newUrls.add(link)
-                                referrerMap[link] = currentUrl // track who discovered this link
+                            }
+                            // Record this page as a referrer — but never record a page as its own referrer
+                            if (link != currentUrl) {
+                                referrerMap.compute(link) { _, existing ->
+                                    (existing ?: java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())).also { it.add(currentUrl) }
+                                }
                             }
                         }
 
-                        if (newUrls.isNotEmpty()) { // TODO investigate how to avoid adding the same url twice
+                        if (newUrls.isNotEmpty()) {
                             logger.debug(LogCategory.EXTRACTOR, "Discovered ${newUrls.size} new URL(s) from $currentUrl")
                             urlFrontier.addAll(newUrls)
                         }
@@ -125,7 +132,7 @@ class CrawlerOrchestrator(
                         // Emit to sink via channel — fire-and-forget, never blocks crawl
                         val event = CrawlEvent(
                             url = currentUrl,
-                            referrerUrl = referrerMap[currentUrl],
+                            referrerUrls = referrerMap[currentUrl]?.toList() ?: emptyList(),
                             html = htmlContent,
                             extractedLinks = newUrls,
                             ipAddress = ipAddress
