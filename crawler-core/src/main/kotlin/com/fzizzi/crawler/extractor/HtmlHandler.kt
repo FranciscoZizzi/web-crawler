@@ -7,6 +7,7 @@ import org.jsoup.Jsoup
 class HtmlHandler(
     private val contentParser: ContentParser,
 ) : ContentHandler {
+    override val id: String = "html-handler"
 
     override fun canHandle(contentType: String): Boolean {
         return contentType.contains("text/html", ignoreCase = true) ||
