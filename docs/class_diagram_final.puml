@@ -1,0 +1,232 @@
+@startuml crawler_core
+
+package com.fzizzi.crawler.engine {
+    class CrawlerOrchestrator {
+        - urlFrontier: URLFrontier
+        - htmlDownloader: HTMLDownloader
+        - dnsResolver: DNSResolver
+        - handlers: List<ContentHandler>
+        - contentStorage: ContentStorage
+        - urlFilters: List<URLFilter>
+        - urlStorage: URLStorage
+        - sink: CrawlResultSink
+        - logger: CrawlerLogger
+        + start(seeds: List<String>)
+    }
+
+    interface URLFilter {
+        + isAllowed(url: String): Boolean
+    }
+
+    class DefaultURLFilter implements URLFilter {
+        - maxLength: Int
+        - maxPathRepetitions: Int
+        + isAllowed(url: String): Boolean
+    }
+}
+
+package com.fzizzi.crawler.downloader {
+    interface HTMLDownloader {
+        + download(url: String, ipAddress: String): Result<RawContent>
+    }
+
+    class DefaultDownloader implements HTMLDownloader {
+        - timeoutMs: Long
+        - dispatcher: DownloadDispatcher
+        - logger: CrawlerLogger
+        + download(url: String, ipAddress: String): Result<RawContent>
+    }
+
+    interface DNSResolver {
+        + resolve(domain: String): Result<String>
+    }
+
+    class CachingDNSResolver implements DNSResolver {
+        - backgroundScope: CoroutineScope
+        - logger: CrawlerLogger
+        + resolve(domain: String): Result<String>
+    }
+
+    interface DownloadDispatcher {
+        + dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<RawContent>>
+    }
+
+    class DefaultDownloadDispatcher implements DownloadDispatcher {
+        + dispatch(url: String, ipAddress: String, timeoutMs: Long): Deferred<Result<RawContent>>
+    }
+}
+
+package com.fzizzi.crawler.frontier {
+    interface URLFrontier {
+        + add(url: String)
+        + addAll(urls: List<String>)
+        + getNext(): String?
+        + markCompleted(url: String)
+        + isEmpty(): Boolean
+    }
+
+    class DefaultURLFrontier implements URLFrontier {
+        - numFrontQueues: Int
+        - numBackQueues: Int
+        - prioritizer: Prioritizer
+        - frontStorage: WorkQueueStorage
+        - backStorage: WorkQueueStorage
+        - lockManager: QueueLockManager
+        + addAll(urls: List<String>)
+        + getNext(): String?
+        + markCompleted(url: String)
+        + isEmpty(): Boolean
+    }
+
+    interface QueueLockManager {
+        + acquire(backQueueIndex: Int): Boolean
+        + release(backQueueIndex: Int)
+    }
+
+     class MemoryQueueLockManager implements QueueLockManager {
+        - locks: ConcurrentHashMap<Int, Boolean>
+         + acquire(backQueueIndex: Int): Boolean
+         + release(backQueueIndex: Int)
+     }
+
+    interface WorkQueueStorage {
+        + offer(queueId: String, url: String)
+        + poll(queueId: String): String?
+        + isEmpty(queueId: String): Boolean
+        + totalSize(): Int
+    }
+
+    class MemoryWorkQueueStorage implements WorkQueueStorage {
+        - queues: ConcurrentHashMap<String, ConcurrentLinkedQueue<String>>
+        + offer(queueId: String, url: String)
+        + poll(queueId: String): String?
+        + isEmpty(queueId: String): Boolean
+        + totalSize(): Int
+    }
+}
+
+package com.fzizzi.crawler.extractor {
+    interface ContentHandler {
+        + canHandle(contentType: String): Boolean
+        + handle(content: RawContent): HandlerResult
+    }
+
+    class HtmlHandler implements ContentHandler {
+        - contentParser: ContentParser
+        + canHandle(contentType: String): Boolean
+        + handle(content: RawContent): HandlerResult
+    }
+
+    class HandlerResult << (D, #FF7700) data >> {
+        + discoveredLinks: List<String>
+        + extractedMetadata: Map<String, Any>
+    }
+}
+
+package com.fzizzi.crawler.parser {
+    interface ContentParser {
+        + parseAndValidate(html: HTMLContent): Boolean
+    }
+
+    class DefaultContentParser implements ContentParser {
+        - minContentLength: Int
+        + parseAndValidate(html: HTMLContent): Boolean
+    }
+}
+
+package com.fzizzi.crawler.storage {
+    interface ContentStorage {
+        + isSeen(content: RawContent): Boolean
+        + markSeen(content: RawContent)
+    }
+
+    class MemoryContentStorage implements ContentStorage {
+        - seenHashes: Set<String>
+        + isSeen(content: RawContent): Boolean
+        + markSeen(content: RawContent)
+    }
+
+    interface URLStorage {
+        + isSeen(url: String): Boolean
+        + markSeen(url: String)
+    }
+
+    class MemoryURLStorage implements URLStorage {
+        - seenUrls: Set<String>
+        + isSeen(url: String): Boolean
+        + markSeen(url: String)
+    }
+}
+
+package com.fzizzi.crawler.sink {
+    interface CrawlResultSink {
+        + accept(event: CrawlEvent)
+    }
+
+    class NoOpSink implements CrawlResultSink {
+        + accept(event: CrawlEvent)
+    }
+}
+
+package com.fzizzi.crawler.logging {
+    interface CrawlerLogger {
+        + info(category: LogCategory, message: String)
+        + warn(category: LogCategory, message: String)
+        + error(category: LogCategory, message: String, throwable: Throwable?)
+        + debug(category: LogCategory, message: String)
+    }
+
+    class ConsoleLogger implements CrawlerLogger {
+        - minLevel: LogLevel
+        + info(category: LogCategory, message: String)
+        + warn(category: LogCategory, message: String)
+        + error(category: LogCategory, message: String, throwable: Throwable?)
+        + debug(category: LogCategory, message: String)
+    }
+
+    class NoOpLogger implements CrawlerLogger {
+        + info(category: LogCategory, message: String)
+        + warn(category: LogCategory, message: String)
+        + error(category: LogCategory, message: String, throwable: Throwable?)
+        + debug(category: LogCategory, message: String)
+    }
+}
+
+package com.fzizzi.crawler.model {
+    class CrawlEvent << (D, #FF7700) data >> {
+        + url: String
+        + referrerUrls: List<String>
+        + rawContent: RawContent
+        + extractedLinks: List<String>
+        + ipAddress: String
+        + metadata: Map<String, Any>
+        + contentSizeBytes: Int
+        + crawledAtMs: Long
+    }
+
+    class RawContent << (D, #FF7700) data >> {
+        + url: String
+        + bytes: ByteArray
+        + contentType: String
+        + hash: String
+        + metadata: Map<String, String>
+    }
+}
+
+CrawlerOrchestrator ---> URLFrontier
+CrawlerOrchestrator ---> HTMLDownloader
+CrawlerOrchestrator ---> DNSResolver
+CrawlerOrchestrator ---> ContentHandler
+CrawlerOrchestrator ---> ContentStorage
+CrawlerOrchestrator -> URLFilter
+CrawlerOrchestrator ---> URLStorage
+CrawlerOrchestrator ---> CrawlResultSink
+CrawlerOrchestrator ---> CrawlerLogger
+
+CrawlEvent o-- RawContent
+ContentHandler ..> RawContent : handle
+ContentHandler .> HandlerResult : returns
+HtmlHandler --> ContentParser
+
+@enduml
+
