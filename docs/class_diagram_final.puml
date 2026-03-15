@@ -121,13 +121,9 @@ package com.fzizzi.crawler.extractor {
         + discoveredLinks: List<String>
         + extractedMetadata: Map<String, Any>
     }
-}
-
-package com.fzizzi.crawler.parser {
     interface ContentParser {
         + parseAndValidate(html: HTMLContent): Boolean
     }
-
     class DefaultContentParser implements ContentParser {
         - minContentLength: Int
         + parseAndValidate(html: HTMLContent): Boolean
@@ -226,7 +222,7 @@ CrawlerOrchestrator ---> CrawlerLogger
 CrawlEvent o-- RawContent
 ContentHandler ..> RawContent : handle
 ContentHandler .> HandlerResult : returns
-HtmlHandler --> ContentParser
+HtmlHandler -> ContentParser
 
 @enduml
 
