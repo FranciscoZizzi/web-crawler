@@ -26,19 +26,10 @@ class BackQueueRouter(private val numQueues: Int) {
     }
 }
 
-interface RecrawlStrategy {
-    fun shouldRecrawl(url: String): Boolean
-}
-
-class DefaultRecrawlStrategy : RecrawlStrategy {
-    override fun shouldRecrawl(url: String): Boolean = false
-}
-
 class DefaultURLFrontier(
     private val numFrontQueues: Int = 3,
     private val numBackQueues: Int = 10,
     private val prioritizer: Prioritizer = DefaultPrioritizer(3),
-    private val recrawlStrategy: RecrawlStrategy = DefaultRecrawlStrategy(),
     private val frontStorage: WorkQueueStorage = MemoryWorkQueueStorage(),
     private val backStorage: WorkQueueStorage = MemoryWorkQueueStorage(),
     private val lockManager: QueueLockManager = MemoryQueueLockManager()
