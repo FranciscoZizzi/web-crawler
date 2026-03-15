@@ -13,7 +13,7 @@ import com.fzizzi.crawler.logging.CrawlerLogger
 import com.fzizzi.crawler.logging.LogCategory
 import com.fzizzi.crawler.logging.LogLevel
 import com.fzizzi.crawler.model.CrawlEvent
-import com.fzizzi.crawler.parser.DefaultContentParser
+import com.fzizzi.crawler.extractor.DefaultContentParser
 import com.fzizzi.crawler.sink.CrawlResultSink
 import com.fzizzi.crawler.storage.MemoryContentStorage
 import com.fzizzi.crawler.storage.MemoryURLStorage

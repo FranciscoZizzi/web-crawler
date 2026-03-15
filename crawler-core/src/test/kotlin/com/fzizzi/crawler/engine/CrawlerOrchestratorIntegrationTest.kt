@@ -3,7 +3,7 @@ package com.fzizzi.crawler.engine
 import com.fzizzi.crawler.downloader.*
 import com.fzizzi.crawler.extractor.HtmlHandler
 import com.fzizzi.crawler.frontier.DefaultURLFrontier
-import com.fzizzi.crawler.parser.DefaultContentParser
+import com.fzizzi.crawler.extractor.DefaultContentParser
 import com.fzizzi.crawler.storage.MemoryContentStorage
 import com.fzizzi.crawler.storage.MemoryURLStorage
 import com.sun.net.httpserver.HttpServer

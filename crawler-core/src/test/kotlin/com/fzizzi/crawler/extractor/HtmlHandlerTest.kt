@@ -1,7 +1,7 @@
 package com.fzizzi.crawler.extractor
 
 import com.fzizzi.crawler.model.RawContent
-import com.fzizzi.crawler.parser.ContentParser
+import com.fzizzi.crawler.extractor.ContentParser
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest

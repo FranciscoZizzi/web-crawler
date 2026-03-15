@@ -1,5 +1,6 @@
 package com.fzizzi.crawler.parser
 
+import com.fzizzi.crawler.extractor.DefaultContentParser
 import com.fzizzi.crawler.model.HTMLContent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
