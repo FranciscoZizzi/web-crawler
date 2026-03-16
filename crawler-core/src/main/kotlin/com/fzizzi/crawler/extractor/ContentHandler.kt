@@ -7,7 +7,7 @@ interface ContentHandler {
 
     fun canHandle(contentType: String): Boolean
 
-    suspend fun handle(content: RawContent): HandlerResult
+    suspend fun handle(content: RawContent): Result<HandlerResult>
 }
 
 data class HandlerResult(

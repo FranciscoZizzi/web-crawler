@@ -1,5 +1,6 @@
 package com.fzizzi.crawler.extractor
 
+import com.fzizzi.crawler.extractor.exceptions.InvalidHtmlContentException
 import com.fzizzi.crawler.model.HTMLContent
 import com.fzizzi.crawler.model.RawContent
 import org.jsoup.Jsoup
@@ -14,17 +15,18 @@ class HtmlHandler(
                contentType.contains("application/xhtml+xml", ignoreCase = true)
     }
 
-    override suspend fun handle(content: RawContent): HandlerResult {
+    override suspend fun handle(content: RawContent): Result<HandlerResult> {
         val htmlContent = HTMLContent(content.url, content.text, content.hash)
-        
-        val isValid = contentParser.parseAndValidate(htmlContent)
-        if (!isValid) return HandlerResult()
+
+        contentParser.parseAndValidate(htmlContent).onFailure { e -> return Result.failure(e) }
 
         val links = extractLinks(htmlContent)
-        
-        return HandlerResult(
-            discoveredLinks = links,
-            extractedMetadata = mapOf("html_hash" to content.hash)
+
+        return Result.success(
+            HandlerResult(
+                discoveredLinks = links,
+                extractedMetadata = mapOf("html_hash" to content.hash)
+            )
         )
     }
 
@@ -40,39 +42,35 @@ class HtmlHandler(
 }
 
 interface ContentParser {
-    suspend fun parseAndValidate(html: HTMLContent): Boolean
+    suspend fun parseAndValidate(html: HTMLContent): Result<Unit>
 }
 
 class DefaultContentParser(
     private val minContentLength: Int = 100
 ) : ContentParser {
 
-    override suspend fun parseAndValidate(html: HTMLContent): Boolean {
+    override suspend fun parseAndValidate(html: HTMLContent): Result<Unit> {
         val content = html.content
 
         if (content.length < minContentLength) {
-            return false
+            return Result.failure(InvalidHtmlContentException("Content too short for url: ${html.url}. Length is ${content.length}, should be at least $minContentLength"))
         }
 
         if (!content.contains("<html", ignoreCase = true) &&
             !content.contains("<!doctype html", ignoreCase = true)) {
-            return false
-        }
-
-        if (content.contains("<meta name=\"robots\" content=\"noindex\"", ignoreCase = true)) {
-            return false
+            return Result.failure(InvalidHtmlContentException("Invalid html for url: ${html.url}"))
         }
 
         try {
             val doc = Jsoup.parse(content)
             val bodyText = doc.body().text() ?: ""
             if (bodyText.length < minContentLength) {
-                return false
+                return Result.failure(InvalidHtmlContentException("Content too short for url: ${html.url}. Length is ${bodyText.length}, should be at least $minContentLength"))
             }
         } catch (e: Exception) {
-            return false
+            return Result.failure(InvalidHtmlContentException("Error parsing html for url: ${html.url}: ${e.message}"))
         }
 
-        return true
+        return Result.success(Unit);
     }
 }

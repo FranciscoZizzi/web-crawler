@@ -7,8 +7,8 @@ class InMemURLFrontier : URLFrontier {
         urls.add(url)
     }
 
-    override suspend fun addAll(newUrls: List<String>) {
-        urls.addAll(newUrls)
+    override suspend fun addAll(urls: List<String>) {
+        this.urls.addAll(urls)
     }
 
     override suspend fun getNext(): String? {

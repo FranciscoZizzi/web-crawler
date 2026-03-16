@@ -75,13 +75,13 @@ class CrawlerOrchestratorTest {
         coEvery { mockDownloader.download(seedUrl, ipAddress) } returns Result.success(content)
         
         // 7. Content Seen
-        coEvery { mockContentStorage.isSeen(content) } returns false
+        coEvery { mockContentStorage.isSeen(content) } returns Result.success(false)
         coEvery { mockContentStorage.markSeen(content) } just Runs
         
         // 8. Handler logic
         every { mockHandler.id } returns "test-handler"
         every { mockHandler.canHandle("text/html") } returns true
-        coEvery { mockHandler.handle(content) } returns HandlerResult(listOf(extractedLink), mapOf("test" to true))
+        coEvery { mockHandler.handle(content) } returns Result.success(HandlerResult(listOf(extractedLink), mapOf("test" to true)))
         
         // 10. URL Seen
         coEvery { mockUrlStorage.isSeen(extractedLink) } returns false
@@ -144,7 +144,7 @@ class CrawlerOrchestratorTest {
         coEvery { mockDownloader.download(seedUrl, ipAddress) } returns Result.success(content)
         
         // Inject content duplicate
-        coEvery { mockContentStorage.isSeen(content) } returns true
+        coEvery { mockContentStorage.isSeen(content) } returns Result.success(true)
         
         coEvery { mockFrontier.markCompleted(seedUrl) } just Runs
 
@@ -200,7 +200,7 @@ class CrawlerOrchestratorReferrerTest {
         coEvery { frontier.getNext() } returns seedUrl andThen null
         coEvery { dns.resolve("example.com") } returns Result.success(ipAddress)
         coEvery { downloader.download(seedUrl, ipAddress) } returns Result.success(content)
-        coEvery { contentStore.isSeen(content) } returns false
+        coEvery { contentStore.isSeen(content) } returns Result.success(false)
         coEvery { contentStore.markSeen(content) } just Runs
         every { handler.canHandle(any()) } returns false
         coEvery { frontier.markCompleted(seedUrl) } just Runs
@@ -236,12 +236,12 @@ class CrawlerOrchestratorReferrerTest {
         coEvery { dns.resolve("example.com") } returns Result.success(ip)
         coEvery { downloader.download(pageA, ip) } returns Result.success(contentA)
         coEvery { downloader.download(pageB, ip) } returns Result.success(contentB)
-        coEvery { contentStore.isSeen(any()) } returns false
+        coEvery { contentStore.isSeen(any()) } returns Result.success(false)
         coEvery { contentStore.markSeen(any()) } just Runs
         
         every { handler.canHandle(any()) } returns true
-        coEvery { handler.handle(contentA) } returns HandlerResult(listOf(pageB))
-        coEvery { handler.handle(contentB) } returns HandlerResult(emptyList())
+        coEvery { handler.handle(contentA) } returns Result.success(HandlerResult(listOf(pageB)))
+        coEvery { handler.handle(contentB) } returns Result.success(HandlerResult(emptyList()))
 
         coEvery { urlStorage.isSeen(pageB) } returns false
         coEvery { urlStorage.markSeen(pageB) } just Runs
@@ -283,13 +283,13 @@ class CrawlerOrchestratorReferrerTest {
         coEvery { downloader.download(pageA, ip) } returns Result.success(contentA)
         coEvery { downloader.download(pageB, ip) } returns Result.success(contentB)
         coEvery { downloader.download(pageC, ip) } returns Result.success(contentC)
-        coEvery { contentStore.isSeen(any()) } returns false
+        coEvery { contentStore.isSeen(any()) } returns Result.success(false)
         coEvery { contentStore.markSeen(any()) } just Runs
         
         every { handler.canHandle(any()) } returns true
-        coEvery { handler.handle(contentA) } returns HandlerResult(listOf(pageC))
-        coEvery { handler.handle(contentB) } returns HandlerResult(listOf(pageC))
-        coEvery { handler.handle(contentC) } returns HandlerResult(emptyList())
+        coEvery { handler.handle(contentA) } returns Result.success(HandlerResult(listOf(pageC)))
+        coEvery { handler.handle(contentB) } returns Result.success(HandlerResult(listOf(pageC)))
+        coEvery { handler.handle(contentC) } returns Result.success(HandlerResult(emptyList()))
 
         coEvery { urlStorage.isSeen(pageC) } returns false andThen true
         coEvery { urlStorage.markSeen(pageC) } just Runs
@@ -328,7 +328,7 @@ class CrawlerOrchestratorReferrerTest {
         coEvery { frontier.getNext() } returns seedUrl andThen null
         coEvery { dns.resolve("example.com") } returns Result.success(ip)
         coEvery { downloader.download(seedUrl, ip) } returns Result.success(content)
-        coEvery { contentStore.isSeen(content) } returns false
+        coEvery { contentStore.isSeen(content) } returns Result.success(false)
         coEvery { contentStore.markSeen(content) } just Runs
         every { handler.canHandle(any()) } returns false
         coEvery { frontier.markCompleted(seedUrl) } just Runs

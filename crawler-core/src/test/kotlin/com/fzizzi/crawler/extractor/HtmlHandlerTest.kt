@@ -2,11 +2,13 @@ package com.fzizzi.crawler.extractor
 
 import com.fzizzi.crawler.model.RawContent
 import com.fzizzi.crawler.extractor.ContentParser
+import com.fzizzi.crawler.extractor.exceptions.InvalidHtmlContentException
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import kotlin.test.assertNotNull
 
 class HtmlHandlerTest {
 
@@ -29,12 +31,11 @@ class HtmlHandlerTest {
         val url = "https://example.com"
         val content = RawContent(url, "text/html", "invalid".toByteArray(), "hash123")
         
-        coEvery { mockParser.parseAndValidate(any()) } returns false
+        coEvery { mockParser.parseAndValidate(any()) } returns Result.failure(InvalidHtmlContentException(""))
 
         val result = handler.handle(content)
         
-        assertTrue(result.discoveredLinks.isEmpty())
-        assertTrue(result.extractedMetadata.isEmpty())
+        assertTrue(result.isFailure)
     }
 
     @Test
@@ -44,10 +45,11 @@ class HtmlHandlerTest {
         val content = RawContent(url, "text/html", html.toByteArray(), "hash123")
         val expectedLinks = listOf("https://example.com/1")
         
-        coEvery { mockParser.parseAndValidate(match { it.hash == "hash123" && it.url == url }) } returns true
+        coEvery { mockParser.parseAndValidate(match { it.hash == "hash123" && it.url == url }) } returns Result.success(Unit)
 
-        val result = handler.handle(content)
-        
+        val result = handler.handle(content).getOrNull()
+
+        assertNotNull(result)
         assertEquals(expectedLinks, result.discoveredLinks)
         assertEquals("hash123", result.extractedMetadata["html_hash"])
     }
